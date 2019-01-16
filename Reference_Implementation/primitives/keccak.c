@@ -1,331 +1,191 @@
-/*
-Implementation by the Keccak Team, namely, Guido Bertoni, Joan Daemen,
-Michaël Peeters, Gilles Van Assche and Ronny Van Keer,
-hereby denoted as "the implementer".
+// sha3.c
+// 19-Nov-11  Markku-Juhani O. Saarinen <mjos@iki.fi>
 
-For more information, feedback or questions, please refer to our website:
-https://keccak.team/
-
-To the extent possible under law, the implementer has waived all copyright
-and related or neighboring rights to the source code in this file.
-http://creativecommons.org/publicdomain/zero/1.0/
-*/
-
-/*
-================================================================
-The purpose of this source file is to demonstrate a readable and compact
-implementation of all the Keccak instances approved in the FIPS 202 standard,
-including the hash functions and the extendable-output functions (XOFs).
-
-We focused on clarity and on source-code compactness,
-rather than on the performance.
-
-The advantages of this implementation are:
-    + The source code is compact, after removing the comments, that is. :-)
-    + There are no tables with arbitrary constants.
-    + For clarity, the comments link the operations to the specifications using
-        the same notation as much as possible.
-    + There is no restriction in cryptographic features. In particular,
-        the SHAKE128 and SHAKE256 XOFs can produce any output length.
-    + The code does not use much RAM, as all operations are done in place.
-
-The drawbacks of this implementation are:
-    - There is no message queue. The whole message must be ready in a buffer.
-    - It is not optimized for performance.
-
-The implementation is even simpler on a little endian platform. Just define the
-LITTLE_ENDIAN symbol in that case.
-
-For a more complete set of implementations, please refer to
-the Keccak Code Package at https://github.com/gvanas/KeccakCodePackage
-
-For more information, please refer to:
-    * [Keccak Reference] https://keccak.team/files/Keccak-reference-3.0.pdf
-    * [Keccak Specifications Summary] https://keccak.team/keccak_specs_summary.html
-
-This file uses UTF-8 encoding, as some comments use Greek letters.
-================================================================
-*/
+// Revised 07-Aug-15 to match with official release of FIPS PUB 202 "SHA3"
+// Revised 03-Sep-15 for portability + OpenSSL - style API
 
 #include "keccak.h"
 
-/**
-  * Function to compute the Keccak[r, c] sponge function over a given input.
-  * @param  rate            The value of the rate r.
-  * @param  capacity        The value of the capacity c.
-  * @param  input           Pointer to the input message.
-  * @param  inputByteLen    The number of input bytes provided in the input message.
-  * @param  delimitedSuffix Bits that will be automatically appended to the end
-  *                         of the input message, as in domain separation.
-  *                         This is a byte containing from 0 to 7 bits
-  *                         These <i>n</i> bits must be in the least significant bit positions
-  *                         and must be delimited with a bit 1 at position <i>n</i>
-  *                         (counting from 0=LSB to 7=MSB) and followed by bits 0
-  *                         from position <i>n</i>+1 to position 7.
-  *                         Some examples:
-  *                             - If no bits are to be appended, then @a delimitedSuffix must be 0x01.
-  *                             - If the 2-bit sequence 0,1 is to be appended (as for SHA3-*), @a delimitedSuffix must be 0x06.
-  *                             - If the 4-bit sequence 1,1,1,1 is to be appended (as for SHAKE*), @a delimitedSuffix must be 0x1F.
-  *                             - If the 7-bit sequence 1,1,0,1,0,0,0 is to be absorbed, @a delimitedSuffix must be 0x8B.
-  * @param  output          Pointer to the buffer where to store the output.
-  * @param  outputByteLen   The number of output bytes desired.
-  * @pre    One must have r+c=1600 and the rate a multiple of 8 bits in this implementation.
-  */
-void Keccak(uint32_t rate, uint32_t capacity, const uint8_t *input, uint64_t inputByteLen, uint8_t delimitedSuffix, uint8_t *output, uint64_t outputByteLen);
+// update the state with given number of rounds
 
-/**
-  *  Function to compute SHAKE128 on the input message with any output length.
-  */
-void FIPS202_SHAKE128(const uint8_t *input, uint32_t inputByteLen, uint8_t *output, int outputByteLen)
+void sha3_keccakf(uint64_t st[25])
 {
-    Keccak(1344, 256, input, inputByteLen, 0x1F, output, outputByteLen);
+    // constants
+    const uint64_t keccakf_rndc[24] = {
+        0x0000000000000001, 0x0000000000008082, 0x800000000000808a,
+        0x8000000080008000, 0x000000000000808b, 0x0000000080000001,
+        0x8000000080008081, 0x8000000000008009, 0x000000000000008a,
+        0x0000000000000088, 0x0000000080008009, 0x000000008000000a,
+        0x000000008000808b, 0x800000000000008b, 0x8000000000008089,
+        0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
+        0x000000000000800a, 0x800000008000000a, 0x8000000080008081,
+        0x8000000000008080, 0x0000000080000001, 0x8000000080008008
+    };
+    const int keccakf_rotc[24] = {
+        1,  3,  6,  10, 15, 21, 28, 36, 45, 55, 2,  14,
+        27, 41, 56, 8,  25, 43, 62, 18, 39, 61, 20, 44
+    };
+    const int keccakf_piln[24] = {
+        10, 7,  11, 17, 18, 3, 5,  16, 8,  21, 24, 4,
+        15, 23, 19, 13, 12, 2, 20, 14, 22, 9,  6,  1
+    };
+
+    // variables
+    int i, j, r;
+    uint64_t t, bc[5];
+
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    uint8_t *v;
+
+    // endianess conversion. this is redundant on little-endian targets
+    for (i = 0; i < 25; i++) {
+        v = (uint8_t *) &st[i];
+        st[i] = ((uint64_t) v[0])     | (((uint64_t) v[1]) << 8) |
+            (((uint64_t) v[2]) << 16) | (((uint64_t) v[3]) << 24) |
+            (((uint64_t) v[4]) << 32) | (((uint64_t) v[5]) << 40) |
+            (((uint64_t) v[6]) << 48) | (((uint64_t) v[7]) << 56);
+    }
+#endif
+
+    // actual iteration
+    for (r = 0; r < KECCAKF_ROUNDS; r++) {
+
+        // Theta
+        for (i = 0; i < 5; i++)
+            bc[i] = st[i] ^ st[i + 5] ^ st[i + 10] ^ st[i + 15] ^ st[i + 20];
+
+        for (i = 0; i < 5; i++) {
+            t = bc[(i + 4) % 5] ^ ROTL64(bc[(i + 1) % 5], 1);
+            for (j = 0; j < 25; j += 5)
+                st[j + i] ^= t;
+        }
+
+        // Rho Pi
+        t = st[1];
+        for (i = 0; i < 24; i++) {
+            j = keccakf_piln[i];
+            bc[0] = st[j];
+            st[j] = ROTL64(t, keccakf_rotc[i]);
+            t = bc[0];
+        }
+
+        //  Chi
+        for (j = 0; j < 25; j += 5) {
+            for (i = 0; i < 5; i++)
+                bc[i] = st[j + i];
+            for (i = 0; i < 5; i++)
+                st[j + i] ^= (~bc[(i + 1) % 5]) & bc[(i + 2) % 5];
+        }
+
+        //  Iota
+        st[0] ^= keccakf_rndc[r];
+    }
+
+#if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    // endianess conversion. this is redundant on little-endian targets
+    for (i = 0; i < 25; i++) {
+        v = (uint8_t *) &st[i];
+        t = st[i];
+        v[0] = t & 0xFF;
+        v[1] = (t >> 8) & 0xFF;
+        v[2] = (t >> 16) & 0xFF;
+        v[3] = (t >> 24) & 0xFF;
+        v[4] = (t >> 32) & 0xFF;
+        v[5] = (t >> 40) & 0xFF;
+        v[6] = (t >> 48) & 0xFF;
+        v[7] = (t >> 56) & 0xFF;
+    }
+#endif
 }
 
-/**
-  *  Function to compute SHAKE256 on the input message with any output length.
-  */
-void FIPS202_SHAKE256(const uint8_t *input, uint32_t inputByteLen, uint8_t *output, int outputByteLen)
-{
-    Keccak(1088, 512, input, inputByteLen, 0x1F, output, outputByteLen);
-}
+// Initialize the context for SHA3
 
-/**
-  *  Function to compute SHA3-224 on the input message. The output length is fixed to 28 bytes.
-  */
-void FIPS202_SHA3_224(const uint8_t *input, uint32_t inputByteLen, uint8_t *output)
-{
-    Keccak(1152, 448, input, inputByteLen, 0x06, output, 28);
-}
-
-/**
-  *  Function to compute SHA3-256 on the input message. The output length is fixed to 32 bytes.
-  */
-void FIPS202_SHA3_256(const uint8_t *input, uint32_t inputByteLen, uint8_t *output)
-{
-    Keccak(1088, 512, input, inputByteLen, 0x06, output, 32);
-}
-
-/**
-  *  Function to compute SHA3-384 on the input message. The output length is fixed to 48 bytes.
-  */
-void FIPS202_SHA3_384(const uint8_t *input, uint32_t inputByteLen, uint8_t *output)
-{
-    Keccak(832, 768, input, inputByteLen, 0x06, output, 48);
-}
-
-/**
-  *  Function to compute SHA3-512 on the input message. The output length is fixed to 64 bytes.
-  */
-void FIPS202_SHA3_512(const uint8_t *input, uint32_t inputByteLen, uint8_t *output)
-{
-    Keccak(576, 1024, input, inputByteLen, 0x06, output, 64);
-}
-
-/*
-================================================================
-Technicalities
-================================================================
-*/
-
-typedef uint64_t tKeccakLane;
-
-#ifndef LITTLE_ENDIAN
-/** Function to load a 64-bit value using the little-endian (LE) convention.
-  * On a LE platform, this could be greatly simplified using a cast.
-  */
-static uint64_t load64(const uint8_t *x)
+int sha3_init(sha3_ctx_t *c, int mdlen)
 {
     int i;
-    uint64_t u=0;
 
-    for(i=7; i>=0; --i) {
-        u <<= 8;
-        u |= x[i];
-    }
-    return u;
+    for (i = 0; i < 25; i++)
+        c->st.q[i] = 0;
+    c->mdlen = mdlen;
+    c->rsiz = 200 - 2 * mdlen;
+    c->pt = 0;
+
+    return 1;
 }
 
-/** Function to store a 64-bit value using the little-endian (LE) convention.
-  * On a LE platform, this could be greatly simplified using a cast.
-  */
-static void store64(uint8_t *x, uint64_t u)
+// update state with more data
+
+int sha3_update(sha3_ctx_t *c, const void *data, size_t len)
 {
-    uint32_t i;
+    size_t i;
+    int j;
 
-    for(i=0; i<8; ++i) {
-        x[i] = u;
-        u >>= 8;
-    }
-}
-
-/** Function to XOR into a 64-bit value using the little-endian (LE) convention.
-  * On a LE platform, this could be greatly simplified using a cast.
-  */
-static void xor64(uint8_t *x, uint64_t u)
-{
-    uint32_t i;
-
-    for(i=0; i<8; ++i) {
-        x[i] ^= u;
-        u >>= 8;
-    }
-}
-#endif
-
-/*
-================================================================
-A readable and compact implementation of the Keccak-f[1600] permutation.
-================================================================
-*/
-
-#define ROL64(a, offset) ((((uint64_t)a) << offset) ^ (((uint64_t)a) >> (64-offset)))
-#define i(x, y) ((x)+5*(y))
-
-#ifdef LITTLE_ENDIAN
-    #define readLane(x, y)          (((tKeccakLane*)state)[i(x, y)])
-    #define writeLane(x, y, lane)   (((tKeccakLane*)state)[i(x, y)]) = (lane)
-    #define XORLane(x, y, lane)     (((tKeccakLane*)state)[i(x, y)]) ^= (lane)
-#else
-    #define readLane(x, y)          load64((uint8_t*)state+sizeof(tKeccakLane)*i(x, y))
-    #define writeLane(x, y, lane)   store64((uint8_t*)state+sizeof(tKeccakLane)*i(x, y), lane)
-    #define XORLane(x, y, lane)     xor64((uint8_t*)state+sizeof(tKeccakLane)*i(x, y), lane)
-#endif
-
-/**
-  * Function that computes the linear feedback shift register (LFSR) used to
-  * define the round constants (see [Keccak Reference, Section 1.2]).
-  */
-int LFSR86540(uint8_t *LFSR)
-{
-    int result = ((*LFSR) & 0x01) != 0;
-    if (((*LFSR) & 0x80) != 0)
-        /* Primitive polynomial over GF(2): x^8+x^6+x^5+x^4+1 */
-        (*LFSR) = ((*LFSR) << 1) ^ 0x71;
-    else
-        (*LFSR) <<= 1;
-    return result;
-}
-
-/**
- * Function that computes the Keccak-f[1600] permutation on the given state.
- */
-void KeccakF1600_StatePermute(void *state)
-{
-    uint32_t round, x, y, j, t;
-    uint8_t LFSRstate = 0x01;
-
-    for(round=0; round<24; round++) {
-        {   /* === θ step (see [Keccak Reference, Section 2.3.2]) === */
-            tKeccakLane C[5], D;
-
-            /* Compute the parity of the columns */
-            for(x=0; x<5; x++)
-                C[x] = readLane(x, 0) ^ readLane(x, 1) ^ readLane(x, 2) ^ readLane(x, 3) ^ readLane(x, 4);
-            for(x=0; x<5; x++) {
-                /* Compute the θ effect for a given column */
-                D = C[(x+4)%5] ^ ROL64(C[(x+1)%5], 1);
-                /* Add the θ effect to the whole column */
-                for (y=0; y<5; y++)
-                    XORLane(x, y, D);
-            }
-        }
-
-        {   /* === ρ and π steps (see [Keccak Reference, Sections 2.3.3 and 2.3.4]) === */
-            tKeccakLane current, temp;
-            /* Start at coordinates (1 0) */
-            x = 1; y = 0;
-            current = readLane(x, y);
-            /* Iterate over ((0 1)(2 3))^t * (1 0) for 0 ≤ t ≤ 23 */
-            for(t=0; t<24; t++) {
-                /* Compute the rotation constant r = (t+1)(t+2)/2 */
-                uint32_t r = ((t+1)*(t+2)/2)%64;
-                /* Compute ((0 1)(2 3)) * (x y) */
-                uint32_t Y = (2*x+3*y)%5; x = y; y = Y;
-                /* Swap current and state(x,y), and rotate */
-                temp = readLane(x, y);
-                writeLane(x, y, ROL64(current, r));
-                current = temp;
-            }
-        }
-
-        {   /* === χ step (see [Keccak Reference, Section 2.3.1]) === */
-            tKeccakLane temp[5];
-            for(y=0; y<5; y++) {
-                /* Take a copy of the plane */
-                for(x=0; x<5; x++)
-                    temp[x] = readLane(x, y);
-                /* Compute χ on the plane */
-                for(x=0; x<5; x++)
-                    writeLane(x, y, temp[x] ^((~temp[(x+1)%5]) & temp[(x+2)%5]));
-            }
-        }
-
-        {   /* === ι step (see [Keccak Reference, Section 2.3.5]) === */
-            for(j=0; j<7; j++) {
-                uint32_t bitPosition = (1<<j)-1; /* 2^j-1 */
-                if (LFSR86540(&LFSRstate))
-                    XORLane(0, 0, (tKeccakLane)1<<bitPosition);
-            }
+    j = c->pt;
+    for (i = 0; i < len; i++) {
+        c->st.b[j++] ^= ((const uint8_t *) data)[i];
+        if (j >= c->rsiz) {
+            sha3_keccakf(c->st.q);
+            j = 0;
         }
     }
+    c->pt = j;
+
+    return 1;
 }
 
-/*
-================================================================
-A readable and compact implementation of the Keccak sponge functions
-that use the Keccak-f[1600] permutation.
-================================================================
-*/
+// finalize and output a hash
 
-#include <string.h>
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
-void Keccak(uint32_t rate, uint32_t capacity, const uint8_t *input, uint64_t inputByteLen, uint8_t delimitedSuffix, uint8_t *output, uint64_t outputByteLen)
+int sha3_final(void *md, sha3_ctx_t *c)
 {
-    uint8_t state[200];
-    uint32_t rateInBytes = rate/8;
-    uint32_t blockSize = 0;
-    uint32_t i;
+    int i;
 
-    if (((rate + capacity) != 1600) || ((rate % 8) != 0))
-        return;
+    c->st.b[c->pt] ^= 0x06;
+    c->st.b[c->rsiz - 1] ^= 0x80;
+    sha3_keccakf(c->st.q);
 
-    /* === Initialize the state === */
-    memset(state, 0, sizeof(state));
-
-    /* === Absorb all the input blocks === */
-    while(inputByteLen > 0) {
-        blockSize = MIN(inputByteLen, rateInBytes);
-        for(i=0; i<blockSize; i++)
-            state[i] ^= input[i];
-        input += blockSize;
-        inputByteLen -= blockSize;
-
-        if (blockSize == rateInBytes) {
-            KeccakF1600_StatePermute(state);
-            blockSize = 0;
-        }
+    for (i = 0; i < c->mdlen; i++) {
+        ((uint8_t *) md)[i] = c->st.b[i];
     }
 
-    /* === Do the padding and switch to the squeezing phase === */
-    /* Absorb the last few bits and add the first bit of padding (which coincides with the delimiter in delimitedSuffix) */
-    state[blockSize] ^= delimitedSuffix;
-    /* If the first bit of padding is at position rate-1, we need a whole new block for the second bit of padding */
-    if (((delimitedSuffix & 0x80) != 0) && (blockSize == (rateInBytes-1)))
-        KeccakF1600_StatePermute(state);
-    /* Add the second bit of padding */
-    state[rateInBytes-1] ^= 0x80;
-    /* Switch to the squeezing phase */
-    KeccakF1600_StatePermute(state);
-
-    /* === Squeeze out all the output blocks === */
-    while(outputByteLen > 0) {
-        blockSize = MIN(outputByteLen, rateInBytes);
-        memcpy(output, state, blockSize);
-        output += blockSize;
-        outputByteLen -= blockSize;
-
-        if (outputByteLen > 0)
-            KeccakF1600_StatePermute(state);
-    }
+    return 1;
 }
+
+// compute a SHA-3 hash (md) of given byte length from "in"
+
+void *sha3(const void *in, size_t inlen, void *md, int mdlen)
+{
+    sha3_ctx_t sha3;
+
+    sha3_init(&sha3, mdlen);
+    sha3_update(&sha3, in, inlen);
+    sha3_final(md, &sha3);
+
+    return md;
+}
+
+// SHAKE128 and SHAKE256 extensible-output functionality
+
+void shake_xof(sha3_ctx_t *c)
+{
+    c->st.b[c->pt] ^= 0x1F;
+    c->st.b[c->rsiz - 1] ^= 0x80;
+    sha3_keccakf(c->st.q);
+    c->pt = 0;
+}
+
+void shake_out(sha3_ctx_t *c, void *out, size_t len)
+{
+    size_t i;
+    int j;
+
+    j = c->pt;
+    for (i = 0; i < len; i++) {
+        if (j >= c->rsiz) {
+            sha3_keccakf(c->st.q);
+            j = 0;
+        }
+        ((uint8_t *) out)[i] = c->st.b[j++];
+    }
+    c->pt = j;
+}
+

@@ -38,7 +38,7 @@ void hash_8N_to_4N(struct hash *dst, const struct hash *src)
 
 void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
 {
-    FIPS202_SHA3_256(src, srclen, dst->h);
+    sha3(src, srclen, dst->h, 32);
 }
 
 void hash_compress_pairs(struct hash *dst, const struct hash *src, int count)
