@@ -30,7 +30,7 @@ help:
 			@echo "\tformat\t\t formats the code using .clang-format rules"
 
 bench:		$(SRC)
-			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o bench
+			$(CC) $(CFLAGS) $^ $(LDFLAGS) -o bench
 			./bench
 
 format:
