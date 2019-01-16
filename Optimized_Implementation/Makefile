@@ -1,7 +1,7 @@
 SRC=$(wildcard *.c) $(wildcard primitives/*.c)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 
-CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
+CFLAGS_COMMON=-std=c89 -pedantic -Wall -Wextra -Wno-long-long -march=native
 
 VERSION_S= -DPORS_k=24 -DMERKLE_h=5  -DGRAVITY_d=1  -DGRAVITY_c=10
 VERSION_M= -DPORS_k=32 -DMERKLE_h=5  -DGRAVITY_d=7  -DGRAVITY_c=15
