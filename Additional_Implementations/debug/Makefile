@@ -5,7 +5,6 @@ BIN=gen_ivs
 
 
 CFLAGS_COMMON=-std=c89 -pedantic -Wall -Wextra -Wno-long-long -march=native
-LDFLAGS=-lcrypto
 
 VERSION_S= -DPORS_k=24 -DMERKLE_h=5  -DGRAVITY_d=1  -DGRAVITY_c=10
 VERSION_M= -DPORS_k=32 -DMERKLE_h=5  -DGRAVITY_d=7  -DGRAVITY_c=15
@@ -18,10 +17,6 @@ CFLAGS=$(CFLAGS_COMMON) -O3 -fomit-frame-pointer
 CFLAGS_SANITIZED=$(CFLAGS_COMMON) -fsanitize=address,undefined -g
 
 KERNEL_NAME := $(shell uname -s)
-ifeq ($(KERNEL_NAME), Darwin)
-	CFLAGS += -I/usr/local/opt/openssl/include
-	LDFLAGS += -L/usr/local/opt/openssl/lib
-endif
 
 all: help
 

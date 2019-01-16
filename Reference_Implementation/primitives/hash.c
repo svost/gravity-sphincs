@@ -4,7 +4,7 @@
 #include "../hash.h"
 
 #include "haraka.h"
-#include <openssl/sha.h>
+#include "keccak.h"
 
 void hash_N_to_N(struct hash *dst, const struct hash *src)
 {
@@ -23,7 +23,7 @@ void hash_2N_to_N(struct hash *dst, const struct hash *src)
 
 void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
 {
-    SHA256(src, srclen, dst->h);
+    FIPS202_SHA3_256(src, srclen, dst->h);
 }
 
 void hash_compress_pairs(struct hash *dst, const struct hash *src, int count)

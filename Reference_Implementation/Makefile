@@ -16,8 +16,8 @@ CFLAGS_SANITIZED=$(CFLAGS_COMMON) -fsanitize=address,undefined -g
 
 KERNEL_NAME := $(shell uname -s)
 ifeq ($(KERNEL_NAME), Darwin)
-	CFLAGS += -I/usr/local/opt/openssl/include
-	LDFLAGS += -L/usr/local/opt/openssl/lib
+   CFLAGS += -I/usr/local/opt/openssl/include
+   LDFLAGS += -L/usr/local/opt/openssl/lib
 endif
 
 all: help
