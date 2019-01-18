@@ -16,6 +16,24 @@
 #define N 32
 #define ROUNDS 3
 
+#if PRINTKEYS
+static char* ts_bin2hex(const unsigned char *old, const size_t oldlen)
+{
+    char *result = (char*) malloc(oldlen * 2 + 1);
+    size_t i, j;
+    int b = 0;
+
+    for (i = j = 0; i < oldlen; i++) {
+        b = old[i] >> 4;
+        result[j++] = (char) (87 + b + (((b - 10) >> 31) & -39));
+        b = old[i] & 0xf;
+        result[j++] = (char) (87 + b + (((b - 10) >> 31) & -39));
+    }
+    result[j] = '\0';
+    return result;
+
+}
+#endif
 
 int main () {
 
@@ -68,6 +86,16 @@ int main () {
     }
 
     MEASURE ("crypto_sign_keypair");
+
+#if PRINTKEYS
+    uint8_t *pkh = ts_bin2hex(pk, PKLEN);
+    uint8_t *skh = ts_bin2hex(sk, SKLEN);
+
+    printf("Public key: %s\n", pkh);
+    printf("Secret key: %s\n", skh);
+    free(pkh);
+    free(skh);
+#endif
 
     for (i = 0; i < ROUNDS; ++i) {
 
