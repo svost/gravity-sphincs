@@ -3,6 +3,8 @@
  */
 #pragma once
 
+int crypto_derive_keypair (const unsigned char *seed, unsigned char *pk, unsigned char *sk);
+
 int crypto_sign_keypair (unsigned char *pk, unsigned char *sk);
 
 int crypto_sign (unsigned char *sm,

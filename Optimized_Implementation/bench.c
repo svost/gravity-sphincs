@@ -30,6 +30,11 @@ int main () {
     int ret = -1;
     int i;
 
+    uint8_t secret_seed[32] = {
+        0x6e, 0xe5, 0x0b, 0xba, 0x4a, 0xe2, 0x80, 0xe5, 0x00, 0xc4, 0x34, 0xb3, 0x32, 0xe4, 0x3b, 0xa5,
+        0xdc, 0x6d, 0xfc, 0xb9, 0x34, 0xb6, 0x2a, 0x23, 0x6a, 0xee, 0x8b, 0x5c, 0x6e, 0x96, 0xc7, 0x4c,
+    };
+
     if (!sm) {
         fprintf (stderr, "error: sm malloc failed\n");
         ret = 1;
@@ -56,13 +61,13 @@ int main () {
 
     gettimeofday (&tm1, NULL);
 
-    if (crypto_sign_keypair (pk, sk)) {
-        fprintf (stderr, "error: crypto_sign_keypair failed\n");
+    if (crypto_derive_keypair (secret_seed, pk, sk)) {
+        fprintf (stderr, "error: crypto_derive_keypair failed\n");
         ret = 1;
         goto label_exit_2;
     }
 
-    MEASURE ("crypto_sign_keypair");
+    MEASURE ("crypto_derive_keypair");
 
     for (i = 0; i < ROUNDS; ++i) {
 

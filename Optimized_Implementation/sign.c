@@ -4,16 +4,17 @@
 #include "gravity.h"
 #include "randombytes.h"
 
-
-int crypto_sign_keypair (unsigned char *pk, unsigned char *sk) {
+int crypto_derive_keypair (const unsigned char *seed, unsigned char *pk, unsigned char *sk) {
 
     struct gravity_sk sk_str;
     struct gravity_pk pk_str;
+    struct hash seed_hash;
 
     if (!pk || !sk) return -1;
 
-    randombytes (sk_str.seed.h, HASH_SIZE);
-    randombytes (sk_str.salt.h, HASH_SIZE);
+    hash_to_N (&seed_hash, seed, HASH_SIZE);
+    hash_N_to_N (&sk_str.seed, &seed_hash);
+    hash_N_to_N (&sk_str.salt, &sk_str.seed);
 
     gravity_gensk (&sk_str);
 
@@ -24,6 +25,14 @@ int crypto_sign_keypair (unsigned char *pk, unsigned char *sk) {
     memcpy (pk, pk_str.k.h, HASH_SIZE);
 
     return 0;
+}
+
+int crypto_sign_keypair (unsigned char *pk, unsigned char *sk) {
+    unsigned char seed[HASH_SIZE];
+
+    randombytes (seed, HASH_SIZE);
+
+    return crypto_derive_keypair(seed, pk, sk);
 }
 
 int crypto_sign (unsigned char *sm,
