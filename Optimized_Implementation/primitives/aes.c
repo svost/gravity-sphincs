@@ -18,8 +18,7 @@ static __m128i assist256_1 (__m128i a, __m128i b) {
     c = _mm_castps_si128 (_mm_shuffle_ps (_mm_castsi128_ps (c), _mm_castsi128_ps (a),
                                           _MM_SHUFFLE (2, 0, 3, 0)));
     a = _mm_xor_si128 (a, c);
-    a = _mm_xor_si128 (a, b);
-    return a;
+    return _mm_xor_si128 (a, b); // return a = _mm_xor_si128 (a, b);
 }
 
 static __m128i assist256_2 (__m128i a, __m128i b) {
@@ -31,8 +30,7 @@ static __m128i assist256_2 (__m128i a, __m128i b) {
     c = _mm_castps_si128 (_mm_shuffle_ps (_mm_castsi128_ps (c), _mm_castsi128_ps (a),
                                           _MM_SHUFFLE (2, 0, 3, 0)));
     a = _mm_xor_si128 (a, c);
-    a = _mm_xor_si128 (a, b);
-    return a;
+    return _mm_xor_si128 (a, b); // return a = _mm_xor_si128 (a, b);
 }
 
 static void expand256 (__m128i *rkeys, const __m128i *key) {
@@ -60,8 +58,7 @@ static __m128i increment_be (__m128i x) {
     swap = _mm_setr_epi8 (15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
     x = _mm_shuffle_epi8 (x, swap);
     x = _mm_add_epi64 (x, _mm_set_epi32 (0, 0, 0, 1));
-    x = _mm_shuffle_epi8 (x, swap);
-    return x;
+    return _mm_shuffle_epi8 (x, swap); // return x = _mm_shuffle_epi8 (x, swap);
 }
 
 void aesctr256_direct_x4 (uint8_t *out, const __m128i *rkeys, const void *counter, size_t bytes) {
