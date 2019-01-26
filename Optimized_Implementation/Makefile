@@ -3,11 +3,28 @@ OBJ=$(patsubst %.c, %.o, $(SRC))
 
 CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
 
-VERSION_S= -DPORS_k=24 -DMERKLE_h=5  -DGRAVITY_d=1  -DGRAVITY_c=10
-VERSION_M= -DPORS_k=32 -DMERKLE_h=5  -DGRAVITY_d=7  -DGRAVITY_c=15
-VERSION_L= -DPORS_k=28 -DMERKLE_h=5  -DGRAVITY_d=10 -DGRAVITY_c=14
+# Some of sample configurations from https://eprint.iacr.org/2017/933.pdf
 
-VERSION=$(VERSION_M)
+# small
+VERSION_S= -DPORS_k=24 -DMERKLE_h=5  -DGRAVITY_d=1  -DGRAVITY_c=10
+
+# batched
+
+VERSION_B= -DPORS_k=32 -DMERKLE_h=8  -DGRAVITY_d=3  -DGRAVITY_c=16
+
+# fast
+VERSION_F= -DPORS_k=32 -DMERKLE_h=5  -DGRAVITY_d=7  -DGRAVITY_c=15
+
+# NIST-fast
+VERSION_NF= -DPORS_k=28 -DMERKLE_h=5  -DGRAVITY_d=10 -DGRAVITY_c=14
+
+# NIST
+VERSION_N= -DPORS_k=28 -DMERKLE_h=8  -DGRAVITY_d=6 -DGRAVITY_c=16
+
+# NIST-slow
+VERSION_NS= -DPORS_k=28 -DMERKLE_h=14  -DGRAVITY_d=4 -DGRAVITY_c=8
+
+VERSION=$(VERSION_NS)
 
 CFLAGS_COMMON+=$(VERSION)
 CFLAGS=$(CFLAGS_COMMON) -O3 -fomit-frame-pointer
