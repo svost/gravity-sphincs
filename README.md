@@ -6,9 +6,11 @@ Gravity-SPHINCS is a stateless hash-based signature scheme designed by Jean-Phil
 
 ### Documentation
 
-* [Supporting_Documentation/submission.pdf](Supporting_Documentation/submission.pdf): Reference documentation of Gravity-SPHINCS, include specification, security analysis, performance analysis.
+* [Supporting_Documentation/nist_submission/submission.pdf](Supporting_Documentation/nist_submission/submission.pdf): Reference documentation of Gravity-SPHINCS, include specification, security analysis, performance analysis.
 
-* [Supporting_Documentation/latex_source/](Supporting_Documentation/latex_source/): LaTeX source of the reference documentation.
+* [Supporting_Documentation/nist_submission/latex_source/](Supporting_Documentation/nist_submission/latex_source/): LaTeX source of the reference documentation.
+
+* [Supporting_Documentation/Improving Stateless Hash-Based Signatures.pdf](Supporting_Documentation/Improving Stateless Hash-Based Signatures.pdf): More detailed explanation of Gravity-SPHINCS and its improvements.
 
 * [Supporting_Documentation/master_thesis_endignoux_guillaume.pdf](Supporting_Documentation/master_thesis_endignoux_guillaume.pdf): Masters thesis of Guillaume Endignoux, containing detailed analyses related to Gravity-SPHINCS' security.
 
