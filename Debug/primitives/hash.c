@@ -60,11 +60,12 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     memset(&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
     memcpy(&nodes[0], src, srclen); // copy src data
 
-    // Step 2: If we have just one chunk, then duplicate it
+    // Step 2: If we have just one chunk, then create new 
+    //   element to have even number of nodes
     if (total_chunks == 1)
     {
-        PBYTES ("Duplicating chunk", &nodes[0], sizeof(*nodes));
-        memcpy(&nodes[1], src, srclen); // copy src data
+        PBYTES ("Adding image of chunk", &nodes[0], sizeof(*nodes));
+        haraka256_256(&nodes[1], &nodes[0]);
         ++total_chunks;
     }
     
@@ -77,23 +78,23 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     {
         if (left % 2 == 1)
         {
-            // Duplicate last element if we have odd number of nodes
-            memcpy(&nodes[left], &nodes[left - 1], sizeof(*nodes));
-            PBYTES ("Duplicating odd element", &nodes[left - 1], sizeof(*nodes));
-            PBYTES ("Updated nodes data array", &nodes[0], total_chunks * sizeof(*nodes));
+            // Append an image of last element if we have odd number of nodes
+            PBYTES ("Appending image of odd element", &nodes[left - 1], sizeof(*nodes));
+            haraka256_256(&nodes[left], &nodes[left - 1]);
             ++left;
+            PBYTES ("Updated nodes data array", &nodes[0], left * sizeof(*nodes));
         }
 
         for (size_t i = 0; i < left; i += 2)
         {
             // Turn a pair of nodes into upper node value
-            haraka512_256(&nodes[i / 2].h[0], nodes[i].h);
+            haraka512_256(&nodes[i / 2], &nodes[i]);
             PINT("Pair #", i);
-            PBYTES ("Updated nodes data array", &nodes[0], total_chunks * sizeof(*nodes));
+            PBYTES ("Updated nodes data array", &nodes[0], left * sizeof(*nodes));
         }
     }
 
-    memcpy(dst->h, &nodes[0].h[0], sizeof(*nodes));
+    memcpy(dst->h, &nodes[0], sizeof(*nodes));
     free(nodes);
 
     PBYTES ("Hashing result", dst->h, sizeof(*nodes));
