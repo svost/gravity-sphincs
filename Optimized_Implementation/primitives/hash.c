@@ -5,6 +5,7 @@
 #include "haraka.h"
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 void hash_N_to_N(struct hash *dst, const struct hash *src)
 {
@@ -38,31 +39,47 @@ void hash_8N_to_4N(struct hash *dst, const struct hash *src)
 
 void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
 {
-    // We should have a set of HASH_SIZE-byte chunks. In case if we don't, we have to append it.
-    size_t full_chunks = srclen / HASH_SIZE;
-    size_t excessive_data_len = srclen - HASH_SIZE * full_chunks;
-    size_t total_chunks = full_chunks + (excessive_data_len != 0 ? 1 : 0);
-    
-    // Step 1: Populate zero level of tree
+    // Split original data to HASH_SIZE-byte chunks
+    //    and use them to build a merkle tree.
+    //
+    // NOTE: We need a full set of HASH_SIZE-byte chunks. If case
+    //   if we don't, then fill the remaining space with zeros.
+    size_t full_chunks = srclen / HASH_SIZE; // Fully completed chunks
+    size_t tail_len = srclen - HASH_SIZE * full_chunks; // Tail of data remaining after filling all of the completed chunks
+    size_t total_chunks = (full_chunks == 0) ? 1 : (full_chunks + (tail_len != 0 ? 1 : 0)); // Full chunks plus uncompleted one if there is any tail present
+
+    // Step 1: Populate zero level of nodes with chunks of input data
     struct hash * const nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
     memset(&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
-    memcpy(&nodes[0], src, srclen); // src data + zero padding
-    
+    memcpy(&nodes[0], src, srclen); // copy src data
+
     // Step 2: Compress them to a merkle root hash
-    for ( ; total_chunks > 1; total_chunks /= 2)
+    //
+    // NOTE: Please take into account that one-element node trees MUST be hashed anyway
+    bool stop = false;
+    for (size_t left = total_chunks; left > 0 && !stop; left /= 2)
     {
-        // Duplicate last element if we have odd number of nodes
-        if (total_chunks % 2 == 1)
+        if (left % 2 == 1)
         {
-            memcpy(&nodes[total_chunks], &nodes[total_chunks - 1], sizeof(*nodes));
-            ++total_chunks;
+            // Duplicate last element if we have odd number of nodes
+            memcpy(&nodes[left], &nodes[left - 1], sizeof(*nodes));
+            if (left == 1) 
+            {
+                // We're at penultimate level, so 
+                //   stop after this iteration will be done
+                stop = true;
+            }
+            ++left;
         }
 
-        for (size_t i = 0; i < total_chunks; i += 2)
-            haraka512_256(nodes[i / 2].h, nodes[i].h);
+        for (size_t i = 0; i < left; i += 2)
+        {
+            // Turn a pair of nodes into upper node value
+            haraka512_256(&nodes[i / 2].h[0], nodes[i].h);
+        }
     }
 
-    memcpy(dst->h, nodes, HASH_SIZE);
+    memcpy(dst->h, &nodes[0].h[0], sizeof(*nodes));
     free(nodes);
 }
 

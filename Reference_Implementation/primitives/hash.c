@@ -4,6 +4,7 @@
 #include "../hash.h"
 #include "haraka.h"
 #include <stdlib.h>
+#include <stdbool.h>
 
 void hash_N_to_N(struct hash *dst, const struct hash *src)
 {
@@ -34,17 +35,24 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     // Step 1: Populate zero level of nodes with chunks of input data
     struct hash * const nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
     memset(&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
-    memcpy(&nodes[1], src, srclen); // src data + zero padding
+    memcpy(&nodes[0], src, srclen); // copy src data
 
     // Step 2: Compress them to a merkle root hash
     //
     // NOTE: Please take into account that one-element node trees MUST be hashed anyway
-    for (size_t left = total_chunks; left >= 1; left /= 2)
+    bool stop = false;
+    for (size_t left = total_chunks; left > 0 && !stop; left /= 2)
     {
         if (left % 2 == 1)
         {
             // Duplicate last element if we have odd number of nodes
             memcpy(&nodes[left], &nodes[left - 1], sizeof(*nodes));
+            if (left == 1) 
+            {
+                // We're at penultimate level, so 
+                //   stop after this iteration will be done
+                stop = true;
+            }
             ++left;
         }
 
@@ -53,16 +61,9 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
             // Turn a pair of nodes into upper node value
             haraka512_256(&nodes[i / 2].h[0], nodes[i].h);
         }
-
-        if (total_chunks == 1)
-        {
-            // We have just one node in this tree,
-            //   so no need to continue hashing after this iteration.
-            break;
-        }
     }
 
-    memcpy(dst->h, &nodes[0].h[0], HASH_SIZE);
+    memcpy(dst->h, &nodes[0].h[0], sizeof(*nodes));
     free(nodes);
 }
 
