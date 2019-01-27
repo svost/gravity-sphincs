@@ -50,14 +50,14 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     
     // Step 1: Populate zero level of nodes with chunks of input data
     struct hash * nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
-    memset(&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
-    memcpy(&nodes[0], src, srclen); // copy src data
+    memset((unsigned char*)&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
+    memcpy((unsigned char*)&nodes[0], src, srclen); // copy src data
 
     // Step 2: If we have just one chunk, then create additional
     //   element to have even number of nodes
     if (total_chunks == 1)
     {
-        haraka256_256(&nodes[1], &nodes[0]);
+        haraka256_256(nodes[1].h, nodes[0].h);
         ++total_chunks;
     }
     
@@ -69,18 +69,18 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
         if (left % 2 == 1)
         {
             // Append an image of last element if we have odd number of nodes
-            haraka256_256(&nodes[left], &nodes[left - 1]);
+            haraka256_256(nodes[left].h, nodes[left - 1].h);
             ++left;
         }
 
         for (size_t i = 0; i < left; i += 2)
         {
             // Turn a pair of nodes into upper node value
-            haraka512_256(&nodes[i / 2], &nodes[i]);
+            haraka512_256(nodes[i / 2].h, nodes[i].h);
         }
     }
 
-    memcpy(dst->h, &nodes[0], sizeof(*nodes));
+    memcpy(dst->h, nodes[0].h, sizeof(*nodes));
     free(nodes);
 }
 
