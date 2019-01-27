@@ -31,28 +31,28 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     size_t full_chunks = srclen / HASH_SIZE; // Fully completed chunks
     size_t tail_len = srclen - HASH_SIZE * full_chunks; // Tail of data remaining after filling all of the completed chunks
     size_t total_chunks = (full_chunks == 0) ? 1 : (full_chunks + (tail_len != 0 ? 1 : 0)); // Full chunks plus uncompleted one if there is any tail present
-
+    
     // Step 1: Populate zero level of nodes with chunks of input data
-    struct hash * const nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
+    struct hash * nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
     memset(&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
     memcpy(&nodes[0], src, srclen); // copy src data
 
-    // Step 2: Compress them to a merkle root hash
+    // Step 2: If we have just one chunk, then duplicate it
+    if (total_chunks == 1)
+    {
+        memcpy(&nodes[1], src, srclen); // copy src data
+        ++total_chunks;
+    }
+
+    // Step 3: Compress all chunks to a merkle root hash
     //
     // NOTE: Please take into account that one-element node trees MUST be hashed anyway
-    bool stop = false;
-    for (size_t left = total_chunks; left > 0 && !stop; left /= 2)
+    for (size_t left = total_chunks; left > 1; left /= 2)
     {
         if (left % 2 == 1)
         {
             // Duplicate last element if we have odd number of nodes
             memcpy(&nodes[left], &nodes[left - 1], sizeof(*nodes));
-            if (left == 1) 
-            {
-                // We're at penultimate level, so 
-                //   stop after this iteration will be done
-                stop = true;
-            }
             ++left;
         }
 

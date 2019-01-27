@@ -56,30 +56,31 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     PINT("Total chunks", total_chunks);
 
     // Step 1: Populate zero level of nodes with chunks of input data
-    struct hash * const nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
+    struct hash * nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
     memset(&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
     memcpy(&nodes[0], src, srclen); // copy src data
-    
-    PBYTES ("Nodes data array", &nodes[0], (total_chunks + 1) * sizeof(*nodes));
 
-    // Step 2: Compress them to a merkle root hash
+    // Step 2: If we have just one chunk, then duplicate it
+    if (total_chunks == 1)
+    {
+        PBYTES ("Duplicating chunk", &nodes[0], sizeof(*nodes));
+        memcpy(&nodes[1], src, srclen); // copy src data
+        ++total_chunks;
+    }
+    
+    PBYTES ("Nodes data array", &nodes[0], total_chunks * sizeof(*nodes));
+
+    // Step 3: Compress all chunks to a merkle root hash
     //
     // NOTE: Please take into account that one-element node trees MUST be hashed anyway
-    bool stop = false;
-    for (size_t left = total_chunks; left > 0 && !stop; left /= 2)
+    for (size_t left = total_chunks; left > 1; left /= 2)
     {
         if (left % 2 == 1)
         {
             // Duplicate last element if we have odd number of nodes
             memcpy(&nodes[left], &nodes[left - 1], sizeof(*nodes));
             PBYTES ("Duplicating odd element", &nodes[left - 1], sizeof(*nodes));
-            PBYTES ("Updated nodes data array", &nodes[0], (total_chunks + 1) * sizeof(*nodes));
-            if (left == 1) 
-            {
-                // We're at penultimate already, so 
-                //   stop after this iteration will be done
-                stop = true;
-            }
+            PBYTES ("Updated nodes data array", &nodes[0], total_chunks * sizeof(*nodes));
             ++left;
         }
 
@@ -88,7 +89,7 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
             // Turn a pair of nodes into upper node value
             haraka512_256(&nodes[i / 2].h[0], nodes[i].h);
             PINT("Pair #", i);
-            PBYTES ("Updated nodes data array", &nodes[0], (total_chunks + 1) * sizeof(*nodes));
+            PBYTES ("Updated nodes data array", &nodes[0], total_chunks * sizeof(*nodes));
         }
     }
 
