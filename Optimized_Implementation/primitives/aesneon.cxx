@@ -97,6 +97,52 @@ void aes256_KeyExpansion_NI(__m128i* keyExp, const __m128i* userkey)
     keyExp[14] = assist256_1(temp1, aeskeygenassist(temp3, 0x40));
 }
 
+static __m128i increment_be_soft(__m128i x) {
+    // preparation
+    int8_t a[16] {};
+    int8_t *pv = (int8_t *)&x;
+    a[0] = pv[0]; a[1] = pv[1]; a[2] = pv[2]; a[3] = pv[3];
+    a[4] = pv[4]; a[5] = pv[5]; a[6] = pv[6]; a[7] = pv[7];
+    a[8] = pv[8]; a[9] = pv[9]; a[10] = pv[10]; a[11] = pv[11];
+    a[12] = pv[12]; a[13] = pv[13]; a[14] = pv[14]; a[15] = pv[15];
+
+    int8_t mask[16] = {
+    0x0f, 0x0e, 0x0d, 0x0c,
+    0x0b, 0x0a, 0x09, 0x08,
+    0x07, 0x06, 0x05, 0x04,
+    0x03, 0x02, 0x01, 0x00
+    };
+
+    int8_t ret[16];
+
+    //x = _mm_shuffle_epi8 (x, swap);
+
+    for (int j = 0; j < 16; j++) {
+    // ret[j] = (mask[0] & 0x80) ? 0 : a[(mask[j] & 0x0f)]; drop cheking against 0x80 see mask[] value
+    ret[j] = a[(mask[j] & 0x0f)]; // bytes by revers order - becouse 0..15 against & 0x0f
+    };
+
+    //x = _mm_add_epi64 (x, _mm_set_epi32 (0, 0, 0, 1));
+    int64_t ret_as_i64[2] {};
+    int64_t *pret = (int64_t *)&ret;
+    ret_as_i64[0] = (pret[0]) + 1;
+    ret_as_i64[1] = (pret[1]) + 0;
+    pv = (int8_t *)&ret_as_i64;
+    a[0] = pv[0]; a[1] = pv[1]; a[2] = pv[2]; a[3] = pv[3];
+    a[4] = pv[4]; a[5] = pv[5]; a[6] = pv[6]; a[7] = pv[7];
+    a[8] = pv[8]; a[9] = pv[9]; a[10] = pv[10]; a[11] = pv[11];
+    a[12] = pv[12]; a[13] = pv[13]; a[14] = pv[14]; a[15] = pv[15];
+
+    //x = _mm_shuffle_epi8 (x, swap);
+    for (int j = 0; j < 16; j++) {
+    // ret[j] = (mask[0] & 0x80) ? 0 : a[(mask[j] & 0x0f)]; drop cheking against 0x80 see mask[] value
+    ret[j] = a[(mask[j] & 0x0f)]; // bytes by revers order - becouse 0..15 against & 0x0f
+    };
+
+    __m128i* p128 = (__m128i *)&ret;
+    return p128[0];
+}
+
 int main(const int argc, const char **argv)
 {
     __m128i rkeys[15] {};
