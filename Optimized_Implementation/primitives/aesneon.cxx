@@ -221,7 +221,33 @@ void aesctr256_direct_x4 (uint8_t *out, const __m128i *rkeys, const void *counte
         s2 = vaeseq_u8(s2, (uint8x16_t){}) ^ vreinterpretq_u8_s32(rkeys[14]);
         s3 = vaeseq_u8(s3, (uint8x16_t){}) ^ vreinterpretq_u8_s32(rkeys[14]);
         s4 = vaeseq_u8(s4, (uint8x16_t){}) ^ vreinterpretq_u8_s32(rkeys[14]);
+
+        vst1q_s32((int32_t*)(bo + i), vreinterpretq_s32_u8(s1));
+        vst1q_s32((int32_t*)(bo + i + 1), vreinterpretq_s32_u8(s2));
+        vst1q_s32((int32_t*)(bo + i + 2), vreinterpretq_s32_u8(s3));
+        vst1q_s32((int32_t*)(bo + i + 3), vreinterpretq_s32_u8(s4));
     }
+
+    for (i = 0; i < blocks_left; i++) {
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[0]));
+        ctr = increment_be_soft (ctr);
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[1]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[2]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[3]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[4]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[5]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[6]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[7]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[8]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[9]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[10]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[11]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[12]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[13]));
+        s1 = vaeseq_u8(s1, (uint8x16_t){}) ^ vreinterpretq_u8_s32(rkeys[14]);
+
+        vst1q_s32((int32_t*)(bo + blocks_parallel + i), vreinterpretq_s32_u8(s1));
+}
 }
 
 int main(const int argc, const char **argv)
