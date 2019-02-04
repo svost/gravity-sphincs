@@ -98,14 +98,10 @@ void aes256_KeyExpansion_NI(__m128i* keyExp, const __m128i* userkey)
 }
 
 static __m128i increment_be_neon(__m128i x) {
-    int8_t *px = (int8_t *)&x;
-    int8x8_t *p8x = (int8x8_t *)&x;
-    int8x8_t swaporder {3, 2, 1, 0, 7, 6, 5, 4};
-    p8x[0] = vtbl1_s8(vld1_s8(px), swaporder);
-    p8x[1] = vtbl1_s8(vld1_s8(px + 8), swaporder);
-    x = vaddq_s32(x, int32x4_t{0, 0, 0, 0x01});
-    p8x[0] = vtbl1_s8(vld1_s8(px), swaporder);
-    p8x[1] = vtbl1_s8(vld1_s8(px + 8), swaporder);
+    uint8x16_t swaporderq {11, 10, 9, 8, 15, 14, 13, 12, 3, 2, 1, 0, 7, 6, 5, 4};
+    x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
+    x = vaddq_s32(x, int32x4_t{0, 0x01, 0, 0});
+    x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
     return x;
 }
 
