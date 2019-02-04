@@ -2,7 +2,7 @@
  * Copyright (C) 2018 Novacoin developers
  */
 
-// g++ aes_assist_1_neon.cpp -mcpu=cortex-a53+crypto -std=c++11
+// g++ aes_assist_1_neon.cpp -mcpu=cortex-a53+simd+crypto -std=c++11
 
 #include <cstddef>
 #include <iostream>
@@ -193,19 +193,19 @@ void aesctr256_direct_x4 (uint8_t *out, const __m128i *rkeys, const void *counte
     for (i = 0; i < blocks_left; i++) {
         s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[0]));
         ctr = increment_be_neon (ctr);
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[1]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[2]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[3]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[4]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[5]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[6]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[7]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[8]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[9]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[10]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[11]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[12]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[13]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[1]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[2]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[3]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[4]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[5]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[6]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[7]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[8]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[9]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[10]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[11]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[12]));
+        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[13]));
         s1 = vaeseq_u8(s1, (uint8x16_t){}) ^ vreinterpretq_u8_s32(rkeys[14]);
 
         vst1q_s32((int32_t*)(bo + blocks_parallel + i), vreinterpretq_s32_u8(s1));
