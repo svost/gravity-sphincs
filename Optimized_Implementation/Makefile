@@ -45,6 +45,9 @@ bench:		$(SRC)
 			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o bench
 			./bench
 
+harakasum:	harakasum.c primitives/haraka.c primitives/hash.c
+			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o harakasum
+
 format:
 			clang-format -i *.c *.h
 
