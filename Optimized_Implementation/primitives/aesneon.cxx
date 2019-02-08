@@ -1,8 +1,12 @@
 /*
- * Copyright (C) 2018 Novacoin developers
+ *  Alexey Demidov
+ *  Radius Group, LLC
+ *  balthazar@yandex.ru
+ *
+ *  Microsoft Reference Source License (Ms-RSL)
  */
 
-// g++ aes_assist_1_neon.cpp -mcpu=cortex-a53+simd+crypto -std=c++11
+// g++ aesneon.cxx -mcpu=cortex-a53+simd+crypto -std=c++11
 
 #include <cstddef>
 #include <iostream>
