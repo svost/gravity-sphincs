@@ -1,4 +1,4 @@
-// clang++ aes_assist_1_neon.cpp -mcpu=cortex-a53+simd+crypto -std=c++11 -O3
+// clang++ harakaneon.cpp -mcpu=cortex-a53+simd+crypto -std=c++11 -O3
 
 #include <cstddef>
 #include <iostream>
@@ -133,6 +133,70 @@ void haraka256_256(unsigned char *out, const unsigned char *in) {
   vst1q_u8(out + 16, s[1]);
 }
 
+void haraka256_256_4x(unsigned char *out, const unsigned char *in) {
+  u128 s[4][2], tmp;
+
+  s[0][0] = vld1q_u8(in);
+  s[0][1] = vld1q_u8(in + 16);
+  s[1][0] = vld1q_u8(in + 32);
+  s[1][1] = vld1q_u8(in + 48);
+  s[2][0] = vld1q_u8(in + 64);
+  s[2][1] = vld1q_u8(in + 80);
+  s[3][0] = vld1q_u8(in + 96);
+  s[3][1] = vld1q_u8(in + 112);
+
+
+  for (unsigned idx = 0; idx < 6; ++idx) {
+  s[0][0] = vaesmcq_u8(vaeseq_u8(s[0][0], (uint8x16_t){})) ^ rc8x16[4 * idx + 0];
+  s[0][1] = vaesmcq_u8(vaeseq_u8(s[0][1], (uint8x16_t){})) ^ rc8x16[4 * idx + 1];
+  s[0][0] = vaesmcq_u8(vaeseq_u8(s[0][0], (uint8x16_t){})) ^ rc8x16[4 * idx + 2];
+  s[0][1] = vaesmcq_u8(vaeseq_u8(s[0][1], (uint8x16_t){})) ^ rc8x16[4 * idx + 3];
+  s[1][0] = vaesmcq_u8(vaeseq_u8(s[1][0], (uint8x16_t){})) ^ rc8x16[4 * idx + 0];
+  s[1][1] = vaesmcq_u8(vaeseq_u8(s[1][1], (uint8x16_t){})) ^ rc8x16[4 * idx + 1];
+  s[1][0] = vaesmcq_u8(vaeseq_u8(s[1][0], (uint8x16_t){})) ^ rc8x16[4 * idx + 2];
+  s[1][1] = vaesmcq_u8(vaeseq_u8(s[1][1], (uint8x16_t){})) ^ rc8x16[4 * idx + 3];
+  s[2][0] = vaesmcq_u8(vaeseq_u8(s[2][0], (uint8x16_t){})) ^ rc8x16[4 * idx + 0];
+  s[2][1] = vaesmcq_u8(vaeseq_u8(s[2][1], (uint8x16_t){})) ^ rc8x16[4 * idx + 1];
+  s[2][0] = vaesmcq_u8(vaeseq_u8(s[2][0], (uint8x16_t){})) ^ rc8x16[4 * idx + 2];
+  s[2][1] = vaesmcq_u8(vaeseq_u8(s[2][1], (uint8x16_t){})) ^ rc8x16[4 * idx + 3];
+  s[3][0] = vaesmcq_u8(vaeseq_u8(s[3][0], (uint8x16_t){})) ^ rc8x16[4 * idx + 0];
+  s[3][1] = vaesmcq_u8(vaeseq_u8(s[3][1], (uint8x16_t){})) ^ rc8x16[4 * idx + 1];
+  s[3][0] = vaesmcq_u8(vaeseq_u8(s[3][0], (uint8x16_t){})) ^ rc8x16[4 * idx + 2];
+  s[3][1] = vaesmcq_u8(vaeseq_u8(s[3][1], (uint8x16_t){})) ^ rc8x16[4 * idx + 3];
+
+  tmp = (u128) vzip2q_u32((uint32x4_t)s[0][0], (uint32x4_t)s[0][1]);
+  s[0][0] = (u128) vzip1q_u32((uint32x4_t)s[0][0], (uint32x4_t)s[0][1]);
+  s[0][1] = tmp;
+  tmp = (u128) vzip2q_u32((uint32x4_t)s[1][0], (uint32x4_t)s[1][1]);
+  s[1][0] = (u128) vzip1q_u32((uint32x4_t)s[1][0], (uint32x4_t)s[1][1]);
+  s[1][1] = tmp;
+  tmp = (u128) vzip2q_u32((uint32x4_t)s[2][0], (uint32x4_t)s[2][1]);
+  s[2][0] = (u128) vzip1q_u32((uint32x4_t)s[2][0], (uint32x4_t)s[2][1]);
+  s[2][1] = tmp;
+  tmp = (u128) vzip2q_u32((uint32x4_t)s[3][0], (uint32x4_t)s[3][1]);
+  s[3][0] = (u128) vzip1q_u32((uint32x4_t)s[3][0], (uint32x4_t)s[3][1]);
+  s[3][1] = tmp;
+  };
+
+  s[0][0] = veorq_u8(s[0][0], vld1q_u8(in));
+  s[0][1] = veorq_u8(s[0][1], vld1q_u8(in + 16));
+  s[1][0] = veorq_u8(s[1][0], vld1q_u8(in + 32));
+  s[1][1] = veorq_u8(s[1][1], vld1q_u8(in + 48));
+  s[2][0] = veorq_u8(s[2][0], vld1q_u8(in + 64));
+  s[2][1] = veorq_u8(s[2][1], vld1q_u8(in + 80));
+  s[3][0] = veorq_u8(s[3][0], vld1q_u8(in + 96));
+  s[3][1] = veorq_u8(s[3][1], vld1q_u8(in + 112));
+
+  vst1q_u8(out, s[0][0]);
+  vst1q_u8(out + 16, s[0][1]);
+  vst1q_u8(out + 32, s[1][0]);
+  vst1q_u8(out + 48, s[1][1]);
+  vst1q_u8(out + 64, s[2][0]);
+  vst1q_u8(out + 80, s[2][1]);
+  vst1q_u8(out + 96, s[1][0]);
+  vst1q_u8(out + 112, s[1][1]);
+}
+
 void haraka512_256(unsigned char *out, const unsigned char *in) {
   u128 s[4], tmp, s_save[4];
 
@@ -261,10 +325,13 @@ void haraka512_256(unsigned char *out, const unsigned char *in) {
 }
 
 
-  int32_t b0[8] {};
-  unsigned char inv[64]{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
-                        33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63};
-  unsigned char outv[64]{};
+  int32_t b0[16] {};
+  unsigned char inv[128]{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
+                        33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,
+                        64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,
+                        95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,
+                        118,119,120,121,122,123,124,125,126,127};
+  unsigned char outv[128]{};
 
 int main()
 {
@@ -272,12 +339,9 @@ int main()
 // svost@svost-VirtualBox:~/src/myprogs$ ./a.out
 // 630b3575  bc4e93ab   8ac2e6f  b40054a4  3944bc88  38e37815  8a465f81  72084f74
 
-    haraka512_256(outv, inv);
+    haraka256_256_4x(outv, inv);
     int32_t *vp = (int32_t *)&outv;
-    b0[0] = vp[0]; b0[4] = vp[4];
-    b0[1] = vp[1]; b0[5] = vp[5];
-    b0[2] = vp[2]; b0[6] = vp[6];
-    b0[3] = vp[3]; b0[7] = vp[7];
+    for (unsigned idx = 0; idx < 16; idx++) b0[idx] = vp[idx];
     cout << right << hex;
     for (const auto& el : b0) cout << setw(10) << el;
     cout << endl;
