@@ -63,16 +63,20 @@ int main(int argc, char *argv[])
 				++i;
 		}
 		if(i)
-			hash_to_N(&bufhash, buf, i);
-		if (j == 0)
-			sum = bufhash;
-		if((j % 2) == 0)
 		{
-			tmp[0] = sum;
-			tmp[1] = bufhash;
-			hash_2N_to_N(&sum, &tmp[0]);
+			hash_to_N(&bufhash, buf, i);
+			if(j)
+			{
+				tmp[0] = sum;
+				tmp[1] = bufhash;
+				hash_2N_to_N(&sum, &tmp[0]);
+			}
+			if (!j)
+			{
+				sum = bufhash;
+				j++;
+			}
 		}
-		j++;
 	}
 	while
 		(len && i == len);
