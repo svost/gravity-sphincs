@@ -13,15 +13,13 @@
 #include <iomanip>
 #include <arm_neon.h>
 
-using namespace std;
+#define int32x4_t __m128i;
 
-typedef int32x4_t __m128i;
-
-  int32_t b0[4] {};
-  int32_t b1[4] {0x0fffffff, 0x0bbbbbbb, 0x08888888, 0x04444444};
+  int32_t b0[4] = {};
+  int32_t b1[4] = {0x0fffffff, 0x0bbbbbbb, 0x08888888, 0x04444444};
 
 static __m128i assist256_1 (__m128i a, __m128i b) {
-    __m128i c{};
+    __m128i c = {};
     b = vdupq_laneq_s32(b, 3); // shuffle ( , 0xff or 3,3,3,3)
     c = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(a), 12)); // slli (12 = 16 - 4)
     a = veorq_s32(a, c); // xor
@@ -33,7 +31,7 @@ static __m128i assist256_1 (__m128i a, __m128i b) {
 }
 
 static __m128i assist256_2 (__m128i a, __m128i c) {
-    __m128i b{}, d{};
+    __m128i b = {}, d = {};
 
     d = (__m128i)vaeseq_u8((uint8x16_t)a, (uint8x16_t){});
     uint8x16_t d_tmp {(uint8x16_t)d}; //d
@@ -57,7 +55,7 @@ static __m128i assist256_2 (__m128i a, __m128i c) {
 static  __m128i aeskeygenassist (__m128i a, unsigned rcon) {
 
     a = (__m128i)vaeseq_u8((uint8x16_t)a, (uint8x16_t){});
-    uint8x16_t d_tmp {(uint8x16_t)a};
+    uint8x16_t d_tmp = {(uint8x16_t)a};
     uint8x16_t dest = {
         d_tmp[0x4], d_tmp[0x1], d_tmp[0xE], d_tmp[0xB],
         d_tmp[0x1], d_tmp[0xE], d_tmp[0xB], d_tmp[0x4],
@@ -102,7 +100,7 @@ void aes256_KeyExpansion_NI(__m128i* keyExp, const __m128i* userkey)
 }
 
 static __m128i increment_be_neon(__m128i x) {
-    uint8x16_t swaporderq {11, 10, 9, 8, 15, 14, 13, 12, 3, 2, 1, 0, 7, 6, 5, 4};
+    uint8x16_t swaporderq = {11, 10, 9, 8, 15, 14, 13, 12, 3, 2, 1, 0, 7, 6, 5, 4};
     x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
     x = vaddq_s32(x, int32x4_t{0, 0x01, 0, 0});
     x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
