@@ -15,9 +15,6 @@
 
 #define int32x4_t __m128i;
 
-  int32_t b0[4] = {};
-  int32_t b1[4] = {0x0fffffff, 0x0bbbbbbb, 0x08888888, 0x04444444};
-
 static __m128i assist256_1 (__m128i a, __m128i b) {
     __m128i c = {};
     b = vdupq_laneq_s32(b, 3); // shuffle ( , 0xff or 3,3,3,3)
