@@ -13,7 +13,7 @@
 
 #include "../aes.h"
 
-#define int32x4_t __m128i;
+#define int32x4_t __m128i
 
 static __m128i assist256_1 (__m128i a, __m128i b) {
     __m128i c = {};
