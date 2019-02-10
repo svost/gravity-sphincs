@@ -273,8 +273,7 @@ void haraka256_256_4x(unsigned char *out, const unsigned char *in) {
 
 void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int chainlen) {
     u128 s[4][2], tmp;
-    unsigned ctr;
-    int idx;
+    int ctr;
 
     s[0][0] = vld1q_u8(in);
     s[0][1] = vld1q_u8(in + 16);

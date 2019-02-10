@@ -50,7 +50,7 @@ static int32x4_t assist256_2 (int32x4_t a, int32x4_t c) {
 static  int32x4_t aeskeygenassist (int32x4_t a, unsigned rcon) {
 
     a = (int32x4_t)vaeseq_u8((uint8x16_t)a, (uint8x16_t){});
-    uint8x16_t d_tmp = {(uint8x16_t)a};
+    uint8x16_t d_tmp = (uint8x16_t)a;
     uint8x16_t dest = {
         d_tmp[0x4], d_tmp[0x1], d_tmp[0xE], d_tmp[0xB],
         d_tmp[0x1], d_tmp[0xE], d_tmp[0xB], d_tmp[0x4],
@@ -60,7 +60,7 @@ static  int32x4_t aeskeygenassist (int32x4_t a, unsigned rcon) {
     return (int32x4_t)(vreinterpretq_u32_u8(dest) ^ (uint32x4_t){0, rcon, 0, rcon});
 }
 
-void aes256_KeyExpansion_NI(int32x4_t* keyExp, const int32x4_t* userkey)
+void expand256(int32x4_t* keyExp, const int32x4_t* userkey)
 {
     int32x4_t temp1, temp2, temp3;
 
@@ -96,8 +96,9 @@ void aes256_KeyExpansion_NI(int32x4_t* keyExp, const int32x4_t* userkey)
 
 static int32x4_t increment_be_neon(int32x4_t x) {
     uint8x16_t swaporderq = {11, 10, 9, 8, 15, 14, 13, 12, 3, 2, 1, 0, 7, 6, 5, 4};
+    int32x4_t one = {0, 0x01, 0, 0};
     x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
-    x = vaddq_s32(x, int32x4_t{0, 0x01, 0, 0});
+    x = vaddq_s32(x, one);
     x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
     return x;
 }
