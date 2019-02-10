@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <arm_neon.h>
 
+#include "../aes.h"
+
 #define int32x4_t __m128i;
 
   int32_t b0[4] = {};

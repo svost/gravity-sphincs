@@ -1,5 +1,4 @@
-SRC=$(wildcard *.c) $(wildcard primitives/x86/*.c)
-OBJ=$(patsubst %.c, %.o, $(SRC))
+SRC=batch.c bench.c gravity.c hash.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/x86/*.c)
 
 CFLAGS_COMMON=-DX86 -std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
 

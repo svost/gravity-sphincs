@@ -2,7 +2,7 @@
  * Copyright (C) 2017 Nagravision S.A.
  */
 #include "wots.h"
-#include "aes.h"
+#include "primitives/aes.h"
 
 #include "ltree.h"
 

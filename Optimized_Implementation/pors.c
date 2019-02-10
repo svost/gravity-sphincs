@@ -3,7 +3,7 @@
  */
 #include "pors.h"
 
-#include "aes.h"
+#include "primitives/aes.h"
 #include "merkle.h"
 #include <stdlib.h>
 
