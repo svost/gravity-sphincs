@@ -29,7 +29,7 @@ static int32x4_t assist256_2 (int32x4_t a, int32x4_t c) {
     int32x4_t b = {}, d = {};
 
     d = (int32x4_t)vaeseq_u8((uint8x16_t)a, (uint8x16_t){});
-    uint8x16_t d_tmp {(uint8x16_t)d}; //d
+    uint8x16_t d_tmp = {(uint8x16_t)d}; //d
     uint8x16_t dest = {
         d_tmp[0x4], d_tmp[0x1], d_tmp[0xE], d_tmp[0xB],
         d_tmp[0x1], d_tmp[0xE], d_tmp[0xB], d_tmp[0x4],
