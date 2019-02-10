@@ -8,9 +8,7 @@
 
 // g++ aesneon.cxx -mcpu=cortex-a53+simd+crypto -std=c++11
 
-#include <cstddef>
-#include <iostream>
-#include <iomanip>
+#include <stddef.h>
 #include <arm_neon.h>
 
 #define int32x4_t __m128i;
