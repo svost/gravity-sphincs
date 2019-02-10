@@ -191,19 +191,19 @@ void aesctr256_direct_x4 (uint8_t *out, const int32x4_t *rkeys, const void *coun
     for (i = 0; i < blocks_left; i++) {
         s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[0]));
         ctr = increment_be_neon (ctr);
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[1]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[2]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[3]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[4]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[5]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[6]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[7]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[8]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[9]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[10]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[11]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[12]));
-        s1 = vreinterpretq_u8_s32(veorq_s32(vreinterpretq_s32_u8(s1), rkeys[13]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[1]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[2]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[3]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[4]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[5]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[6]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[7]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[8]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[9]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[10]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[11]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[12]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t){})) ^ vreinterpretq_u8_s32(rkeys[13]);
         s1 = vaeseq_u8(s1, (uint8x16_t){}) ^ vreinterpretq_u8_s32(rkeys[14]);
 
         vst1q_s32((int32_t*)(bo + blocks_parallel + i), vreinterpretq_s32_u8(s1));
