@@ -13,10 +13,8 @@
 
 #include "../aes.h"
 
-#define int32x4_t __m128i
-
-static __m128i assist256_1 (__m128i a, __m128i b) {
-    __m128i c = {};
+static int32x4_t assist256_1 (int32x4_t a, int32x4_t b) {
+    int32x4_t c = {};
     b = vdupq_laneq_s32(b, 3); // shuffle ( , 0xff or 3,3,3,3)
     c = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(a), 12)); // slli (12 = 16 - 4)
     a = veorq_s32(a, c); // xor
@@ -27,10 +25,10 @@ static __m128i assist256_1 (__m128i a, __m128i b) {
     return veorq_s32(a, b); // return a = veorq_s32(a, b);
 }
 
-static __m128i assist256_2 (__m128i a, __m128i c) {
-    __m128i b = {}, d = {};
+static int32x4_t assist256_2 (int32x4_t a, int32x4_t c) {
+    int32x4_t b = {}, d = {};
 
-    d = (__m128i)vaeseq_u8((uint8x16_t)a, (uint8x16_t){});
+    d = (int32x4_t)vaeseq_u8((uint8x16_t)a, (uint8x16_t){});
     uint8x16_t d_tmp {(uint8x16_t)d}; //d
     uint8x16_t dest = {
         d_tmp[0x4], d_tmp[0x1], d_tmp[0xE], d_tmp[0xB],
@@ -38,7 +36,7 @@ static __m128i assist256_2 (__m128i a, __m128i c) {
         d_tmp[0xC], d_tmp[0x9], d_tmp[0x6], d_tmp[0x3],
         d_tmp[0x9], d_tmp[0x6], d_tmp[0x3], d_tmp[0xC]
     };
-    d = (__m128i)dest; //d = dest ^ (__m128i)((uint32x4_t){0, rcon, 0, rcon}); drop xor - rcon == 0
+    d = (int32x4_t)dest; //d = dest ^ (int32x4_t)((uint32x4_t){0, rcon, 0, rcon}); drop xor - rcon == 0
     b = vdupq_laneq_s32(d, 2); // shuffle ( , 0xaa or 2,2,2,2)
     d = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(c), 12));
     c = veorq_s32(c, d);
@@ -49,9 +47,9 @@ static __m128i assist256_2 (__m128i a, __m128i c) {
     return veorq_s32(c, b); // return c = veorq_s32(c, b);
 }
 
-static  __m128i aeskeygenassist (__m128i a, unsigned rcon) {
+static  int32x4_t aeskeygenassist (int32x4_t a, unsigned rcon) {
 
-    a = (__m128i)vaeseq_u8((uint8x16_t)a, (uint8x16_t){});
+    a = (int32x4_t)vaeseq_u8((uint8x16_t)a, (uint8x16_t){});
     uint8x16_t d_tmp = {(uint8x16_t)a};
     uint8x16_t dest = {
         d_tmp[0x4], d_tmp[0x1], d_tmp[0xE], d_tmp[0xB],
@@ -59,12 +57,12 @@ static  __m128i aeskeygenassist (__m128i a, unsigned rcon) {
         d_tmp[0xC], d_tmp[0x9], d_tmp[0x6], d_tmp[0x3],
         d_tmp[0x9], d_tmp[0x6], d_tmp[0x3], d_tmp[0xC]
     };
-    return (__m128i)(vreinterpretq_u32_u8(dest) ^ (uint32x4_t){0, rcon, 0, rcon});
+    return (int32x4_t)(vreinterpretq_u32_u8(dest) ^ (uint32x4_t){0, rcon, 0, rcon});
 }
 
-void aes256_KeyExpansion_NI(__m128i* keyExp, const __m128i* userkey)
+void aes256_KeyExpansion_NI(int32x4_t* keyExp, const int32x4_t* userkey)
 {
-    __m128i temp1, temp2, temp3;
+    int32x4_t temp1, temp2, temp3;
 
     temp1 = keyExp[0] = vld1q_s32((int32_t *)userkey);
     temp3 = keyExp[1] = vld1q_s32((int32_t *)(userkey+1));
@@ -96,7 +94,7 @@ void aes256_KeyExpansion_NI(__m128i* keyExp, const __m128i* userkey)
     keyExp[14] = assist256_1(temp1, aeskeygenassist(temp3, 0x40));
 }
 
-static __m128i increment_be_neon(__m128i x) {
+static int32x4_t increment_be_neon(int32x4_t x) {
     uint8x16_t swaporderq = {11, 10, 9, 8, 15, 14, 13, 12, 3, 2, 1, 0, 7, 6, 5, 4};
     x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
     x = vaddq_s32(x, int32x4_t{0, 0x01, 0, 0});
@@ -104,9 +102,9 @@ static __m128i increment_be_neon(__m128i x) {
     return x;
 }
 
-void aesctr256_direct_x4 (uint8_t *out, const __m128i *rkeys, const void *counter, size_t bytes) {
+void aesctr256_direct_x4 (uint8_t *out, const int32x4_t *rkeys, const void *counter, size_t bytes) {
     uint8x16_t s1, s2, s3, s4;
-    __m128i ctr, *bo;
+    int32x4_t ctr, *bo;
     /* bytes will always be a multiple of 16 */
     int blocks = bytes / 16;
     int blocks_parallel = 4 * (blocks / 4);
@@ -114,7 +112,7 @@ void aesctr256_direct_x4 (uint8_t *out, const __m128i *rkeys, const void *counte
     int i;
 
     ctr = vld1q_s32((int32_t *)counter);
-    bo = (__m128i *)out;
+    bo = (int32x4_t *)out;
 
     for (i = 0; i < blocks_parallel; i += 4) {
         s1 = vreinterpretq_u8_s32(veorq_s32(ctr, rkeys[0]));
@@ -217,8 +215,8 @@ int aesctr256_zeroiv (uint8_t *out, const uint8_t *sk, int bytes) {
 }
 
 int aesctr256 (uint8_t *out, const uint8_t *k, const void *counter, int bytes) {
-    __m128i rkeys[15];
-    expand256 (rkeys, (__m128i *)k);
+    int32x4_t rkeys[15];
+    expand256 (rkeys, (int32x4_t *)k);
     aesctr256_direct_x4 (out, rkeys, counter, bytes);
     return 0;
 }
