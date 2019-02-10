@@ -1,7 +1,7 @@
-SRC=$(wildcard *.c) $(wildcard primitives/*.c)
+SRC=$(wildcard *.c) $(wildcard primitives/aarch64/*.c)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 
-CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
+CFLAGS_COMMON=-DAARCH64 -std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
 
 # Some of sample configurations from https://eprint.iacr.org/2017/933.pdf
 
@@ -45,7 +45,7 @@ bench:		$(SRC)
 			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o bench
 			./bench
 
-harakasum:	harakasum.c primitives/haraka.c primitives/hash.c
+harakasum:	hash.c harakasum.c primitives/aarch64/haraka.c
 			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o harakasum
 
 format:

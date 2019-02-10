@@ -1,8 +1,8 @@
 /*
  * Copyright (C) 2017 Nagravision S.A.
  */
-#include "../hash.h"
-#include "haraka.h"
+#include "hash.h"
+#include "primitives/haraka.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
