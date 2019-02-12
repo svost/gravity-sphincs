@@ -1,10 +1,10 @@
-SRC=$(wildcard *.c) $(wildcard primitives/*.c)
+SRC=batch.c gen_ivs.c gravity.c hash.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/aarch64/*.c)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 IVSFILE=IntermediateValues.txt
 BIN=gen_ivs
 
 
-CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
+CFLAGS_COMMON=-DAARCH64 -std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
 
 # Some of sample configurations from https://eprint.iacr.org/2017/933.pdf
 

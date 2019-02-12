@@ -1,9 +1,8 @@
 /*
  * Copyright (C) 2017 Nagravision S.A.
  */
-#include "../hash.h"
-#include "haraka.h"
-#include "../debug.h"
+#include "hash.h"
+#include "primitives/haraka.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -40,8 +39,6 @@ void hash_8N_to_4N(struct hash *dst, const struct hash *src)
 
 void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
 {
-    PBYTES ("Data to hash", src, srclen);
-
     // Split original data to HASH_SIZE-byte chunks
     //    and use them to build a merkle tree.
     //
@@ -51,26 +48,19 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     size_t tail_len = srclen - HASH_SIZE * full_chunks; // Tail of data remaining after filling all of the completed chunks
     size_t total_chunks = (full_chunks == 0) ? 1 : (full_chunks + (tail_len != 0 ? 1 : 0)); // Full chunks plus uncompleted one if there is any tail present
     
-    PINT("Full chunks", full_chunks);
-    PINT("Tail length", tail_len);
-    PINT("Total chunks", total_chunks);
-
     // Step 1: Populate zero level of nodes with chunks of input data
     struct hash * nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
-    memset((unsigned char *)&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
-    memcpy((unsigned char *)&nodes[0], src, srclen); // copy src data
+    memset((unsigned char*)&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
+    memcpy((unsigned char*)&nodes[0], src, srclen); // copy src data
 
-    // Step 2: If we have just one chunk, then create new 
+    // Step 2: If we have just one chunk, then create additional
     //   element to have even number of nodes
     if (total_chunks == 1)
     {
-        PBYTES ("Adding image of chunk", nodes[0].h, sizeof(*nodes));
         haraka256_256(nodes[1].h, nodes[0].h);
         ++total_chunks;
     }
     
-    PBYTES ("Nodes data array", nodes[0].h, total_chunks * sizeof(*nodes));
-
     // Step 3: Compress all chunks to a merkle root hash
     //
     // NOTE: Please take into account that one-element node trees MUST be hashed anyway
@@ -79,25 +69,19 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
         if (left % 2 == 1)
         {
             // Append an image of last element if we have odd number of nodes
-            PBYTES ("Appending image of odd element", nodes[left - 1].h, sizeof(*nodes));
             haraka256_256(nodes[left].h, nodes[left - 1].h);
             ++left;
-            PBYTES ("Updated nodes data array", nodes[0].h, left * sizeof(*nodes));
         }
 
         for (size_t i = 0; i < left; i += 2)
         {
             // Turn a pair of nodes into upper node value
             haraka512_256(nodes[i / 2].h, nodes[i].h);
-            PINT("Pair #", i);
-            PBYTES ("Updated nodes data array", nodes[0].h, left * sizeof(*nodes));
         }
     }
 
     memcpy(dst->h, nodes[0].h, sizeof(*nodes));
     free(nodes);
-
-    PBYTES ("Hashing result", dst->h, sizeof(*nodes));
 }
 
 void hash_compress_pairs(struct hash *dst, const struct hash *src, int count)
