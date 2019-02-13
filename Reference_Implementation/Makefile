@@ -1,7 +1,7 @@
 SRC=$(wildcard *.c) $(wildcard primitives/*.c)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 
-CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
+CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -mcpu=cortex-a53
 LDFLAGS=-lcrypto
 
 # Some of sample configurations from https://eprint.iacr.org/2017/933.pdf
