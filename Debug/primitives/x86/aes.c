@@ -175,20 +175,20 @@ void aesctr256_direct_x4 (uint8_t *out, const __m128i *rkeys, const void *counte
 void aesctr256_zeroiv (uint8_t *out, const uint8_t *sk, int bytes) {
     uint8_t counter[16] = {0};
     aesctr256(out, sk, counter, bytes);
-#ifdef DEBUG
-    PINT ("aesctr256_zeroiv", bytes);
-    PBYTES ("aesctr256_zeroinv: sk ", sk, 32);
-    PBYTES ("aesctr256_zeroiv: out ", out, bytes);
-#endif
+//#ifdef DEBUG
+//    PINT ("aesctr256_zeroiv", bytes);
+//    PBYTES ("aesctr256_zeroinv: sk ", sk, 32);
+//    PBYTES ("aesctr256_zeroiv: out ", out, bytes);
+//#endif
 }
 
 void aesctr256 (uint8_t *out, const uint8_t *k, const void *counter, int bytes) {
     __m128i rkeys[15];
     expand256 (rkeys, (__m128i *)k);
     aesctr256_direct_x4 (out, rkeys, counter, bytes);
-#ifdef DEBUG
-    PINT ("aesctr256", bytes);
-    PBYTES ("aesctr256: k ", k, 32);
-    PBYTES ("aesctr256: out ", out, bytes);
-#endif
+//#ifdef DEBUG
+//    PINT ("aesctr256", bytes);
+//    PBYTES ("aesctr256: k ", k, 32);
+//    PBYTES ("aesctr256: out ", out, bytes);
+//#endif
 }
