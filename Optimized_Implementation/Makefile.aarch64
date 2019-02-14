@@ -1,6 +1,6 @@
 SRC=batch.c bench.c gravity.c hash.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/aarch64/*.c)
 
-CFLAGS_COMMON=-DAARCH64 -std=c11 -pedantic -Wall -Wextra -Wno-long-long -mcpu=cortex-a53
+CFLAGS_COMMON=-DAARCH64 -std=c11 -pedantic -Wall -Wextra -Wno-long-long -march=armv8-a+simd+crypto
 
 # Some of sample configurations from https://eprint.iacr.org/2017/933.pdf
 
@@ -23,7 +23,7 @@ VERSION_N= -DPORS_k=28 -DMERKLE_h=8  -DGRAVITY_d=6 -DGRAVITY_c=16
 # NIST-slow
 VERSION_NS= -DPORS_k=28 -DMERKLE_h=14  -DGRAVITY_d=4 -DGRAVITY_c=8
 
-VERSION=$(VERSION_NS)
+VERSION=$(VERSION_S)
 
 CFLAGS_COMMON+=$(VERSION)
 CFLAGS=$(CFLAGS_COMMON) -O3 -fomit-frame-pointer

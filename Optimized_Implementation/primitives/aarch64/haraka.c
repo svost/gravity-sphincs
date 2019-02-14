@@ -269,8 +269,8 @@ void haraka256_256_4x(unsigned char *out, const unsigned char *in) {
   vst1q_u8(out + 48, s[1][1]);
   vst1q_u8(out + 64, s[2][0]);
   vst1q_u8(out + 80, s[2][1]);
-  vst1q_u8(out + 96, s[1][0]);
-  vst1q_u8(out + 112, s[1][1]);
+  vst1q_u8(out + 96, s[3][0]);
+  vst1q_u8(out + 112, s[3][1]);
 }
 
 void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int chainlen) {
@@ -336,8 +336,8 @@ void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int cha
   vst1q_u8(out + 48, s[1][1]);
   vst1q_u8(out + 64, s[2][0]);
   vst1q_u8(out + 80, s[2][1]);
-  vst1q_u8(out + 96, s[1][0]);
-  vst1q_u8(out + 112, s[1][1]);
+  vst1q_u8(out + 96, s[3][0]);
+  vst1q_u8(out + 112, s[3][1]);
 }
 
 void haraka512_256(unsigned char *out, const unsigned char *in) {
