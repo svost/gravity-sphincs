@@ -2,6 +2,7 @@
  * Copyright (C) 2017 Nagravision S.A.
  */
 #include "merkle.h"
+#include "debug.h"
 
 #include <stdlib.h>
 
@@ -32,6 +33,10 @@ int merkle_genpk (const struct hash *key, const struct address *address, struct 
         lwots_genpk (&wsk, &wpk);
         hashcpy (&buf[j], &wpk.k);
 
+//#ifdef DEBUG
+//    PBYTES ("merkle_genpk: wsk ", (uint8_t *)&wsk, HASH_SIZE * WOTS_ell);
+//    PBYTES ("merkle_genpk: wpk ", (uint8_t *)&wpk, HASH_SIZE * WOTS_ell);
+//#endif
         ++base_address.index;
     }
 
