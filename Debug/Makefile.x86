@@ -30,7 +30,7 @@ VERSION_NS= -DPORS_k=28 -DMERKLE_h=14  -DGRAVITY_d=4 -DGRAVITY_c=8
 VERSION=$(VERSION_NS)
 
 CFLAGS_COMMON+=$(VERSION)
-CFLAGS=$(CFLAGS_COMMON) -O3 -fomit-frame-pointer
+CFLAGS=$(CFLAGS_COMMON) -Og -fomit-frame-pointer
 CFLAGS_SANITIZED=$(CFLAGS_COMMON) -fsanitize=address,undefined -g
 
 KERNEL_NAME := $(shell uname -s)
