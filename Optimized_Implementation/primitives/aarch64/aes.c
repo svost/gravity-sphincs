@@ -221,5 +221,4 @@ void aesctr256 (uint8_t *out, const uint8_t *k, const void *counter, int bytes) 
     int32x4_t rkeys[15];
     expand256 (rkeys, (int32x4_t *)k);
     aesctr256_direct_x4 (out, rkeys, counter, bytes);
-    return 0;
 }
