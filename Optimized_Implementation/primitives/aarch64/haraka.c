@@ -63,12 +63,6 @@ static const uint8x16_t rc8x16[48] = {
     {0xf8, 0x8e, 0x20, 0x65, 0xa6, 0x66, 0x23, 0x94, 0x80, 0xc8, 0x51, 0xf7, 0x4f, 0x0c, 0xaa, 0x1c},
     {0x4a, 0x7e, 0xe6, 0xe3, 0x9f, 0x23, 0x03, 0xbd, 0xdd, 0xc1, 0x2d, 0xdb, 0x7f, 0xf5, 0xf7, 0x02}};
 
-//#define HASH_SIZE 32
-//
-//struct hash {
-//    uint8_t h[HASH_SIZE];
-//} __attribute__ ((aligned (16)));
-
 #define u128 uint8x16_t
 
 // haraka_f 6 rounds
@@ -148,10 +142,10 @@ void haraka256_256_chain(unsigned char *out, const unsigned char *in, int chainl
 
   for (cnt = 0; cnt < chainlen; cnt++) {
       for (int i = 0; i < 6; i++) {
-         s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[(i+0)];
-         s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[(i+1)];
-         s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[(i+2)];
-         s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[(i+3)];
+         s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[4*i+0];
+         s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[4*i+1];
+         s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[4*i+2];
+         s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[4*i+3];
 
          tmp = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
          s[0] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
