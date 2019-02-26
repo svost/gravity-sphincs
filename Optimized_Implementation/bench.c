@@ -35,12 +35,13 @@ static char* ts_bin2hex(const unsigned char *old, const size_t oldlen)
 }
 #endif
 
+    uint8_t sk[SKLEN];
+    uint8_t pk[PKLEN];
+
 int main () {
 
     unsigned long long smlen;
     unsigned long long mlen = N;
-    uint8_t sk[SKLEN];
-    uint8_t pk[PKLEN];
     uint8_t m[N];
     uint8_t *sm = malloc (N + SIGLEN);
     struct timeval tm1, tm2;
