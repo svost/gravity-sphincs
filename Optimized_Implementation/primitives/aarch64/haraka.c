@@ -66,60 +66,55 @@ static const uint8x16_t rc8x16[48] = {
 
 // haraka_f 6 rounds
 void haraka256_256(unsigned char *out, const unsigned char *in) {
-  uint8x16_t s[2], tmp, s_save[2];
+  uint8x16x2_t s, s_save;
+  uint8x16_t tmp;
 
-  s_save[0] = s[0] = vld1q_u8(in);
-  s_save[1] = s[1] = vld1q_u8(in + 16);
+  s = s_save = vld1q_u8_x2(in);
 
-  AES_MIX2(s[0], s[1], 0);
-  AES_MIX2(s[0], s[1], 1);
-  AES_MIX2(s[0], s[1], 2);
-  AES_MIX2(s[0], s[1], 3);
-  AES_MIX2(s[0], s[1], 4);
-  AES_MIX2(s[0], s[1], 5);
+  AES_MIX2(s.val[0], s.val[1], 0);
+  AES_MIX2(s.val[0], s.val[1], 1);
+  AES_MIX2(s.val[0], s.val[1], 2);
+  AES_MIX2(s.val[0], s.val[1], 3);
+  AES_MIX2(s.val[0], s.val[1], 4);
+  AES_MIX2(s.val[0], s.val[1], 5);
 
-  s[0] = veorq_u8(s[0], s_save[0]);
-  s[1] = veorq_u8(s[1], s_save[1]);
+  s.val[0] = veorq_u8(s.val[0], s_save.val[0]);
+  s.val[1] = veorq_u8(s.val[1], s_save.val[1]);
 
-  vst1q_u8(out, s[0]);
-  vst1q_u8(out + 16, s[1]);
+  vst1q_u8_x2(out, s);
 }
 
 void haraka256_256_chain(unsigned char *out, const unsigned char *in, int chainlen) {
-  uint8x16_t s[2], tmp, s_save[2];
+  uint8x16x2_t s, s_save;
   int cnt;
+  uint8x16_t tmp;
 
-  s_save[0] = s[0] = vld1q_u8(in);
-  s_save[1] = s[1] = vld1q_u8(in + 16);
+  s = s_save = vld1q_u8_x2(in);
 
   for (cnt = 0; cnt < chainlen; cnt++) {
 
-    AES_MIX2(s[0], s[1], 0);
-    AES_MIX2(s[0], s[1], 1);
-    AES_MIX2(s[0], s[1], 2);
-    AES_MIX2(s[0], s[1], 3);
-    AES_MIX2(s[0], s[1], 4);
-    AES_MIX2(s[0], s[1], 5);
+    AES_MIX2(s.val[0], s.val[1], 0);
+    AES_MIX2(s.val[0], s.val[1], 1);
+    AES_MIX2(s.val[0], s.val[1], 2);
+    AES_MIX2(s.val[0], s.val[1], 3);
+    AES_MIX2(s.val[0], s.val[1], 4);
+    AES_MIX2(s.val[0], s.val[1], 5);
 
-    s[0] = s_save[0] = veorq_u8(s[0], s_save[0]);
-    s[1] = s_save[1] = veorq_u8(s[1], s_save[1]);
+    s.val[0] = s_save.val[0] = veorq_u8(s.val[0], s_save.val[0]);
+    s.val[1] = s_save.val[1] = veorq_u8(s.val[1], s_save.val[1]);
   }
 
-  vst1q_u8(out, s[0]);
-  vst1q_u8(out + 16, s[1]);
+  vst1q_u8_x2(out, s);
 }
 
 void haraka256_256_4x(unsigned char *out, const unsigned char *in) {
-  uint8x16_t s[4][2], tmp;
+  uint8x16x2_t s[4];
+  uint8x16_t tmp;
 
-  s[0][0] = vld1q_u8(in);
-  s[0][1] = vld1q_u8(in + 16);
-  s[1][0] = vld1q_u8(in + 32);
-  s[1][1] = vld1q_u8(in + 48);
-  s[2][0] = vld1q_u8(in + 64);
-  s[2][1] = vld1q_u8(in + 80);
-  s[3][0] = vld1q_u8(in + 96);
-  s[3][1] = vld1q_u8(in + 112);
+  s[0] = vld1q_u8_x2(in);
+  s[1] = vld1q_u8_x2(in + 32);
+  s[2] = vld1q_u8_x2(in + 64);
+  s[3] = vld1q_u8_x2(in + 96);
 
   AES2_4x(s[0], s[1], s[2], s[3], 0);
   MIX2_4x(s[0], s[1], s[2], s[3]);
@@ -134,37 +129,30 @@ void haraka256_256_4x(unsigned char *out, const unsigned char *in) {
   AES2_4x(s[0], s[1], s[2], s[3], 5);
   MIX2_4x(s[0], s[1], s[2], s[3]);
 
-  s[0][0] = veorq_u8(s[0][0], vld1q_u8(in));
-  s[0][1] = veorq_u8(s[0][1], vld1q_u8(in + 16));
-  s[1][0] = veorq_u8(s[1][0], vld1q_u8(in + 32));
-  s[1][1] = veorq_u8(s[1][1], vld1q_u8(in + 48));
-  s[2][0] = veorq_u8(s[2][0], vld1q_u8(in + 64));
-  s[2][1] = veorq_u8(s[2][1], vld1q_u8(in + 80));
-  s[3][0] = veorq_u8(s[3][0], vld1q_u8(in + 96));
-  s[3][1] = veorq_u8(s[3][1], vld1q_u8(in + 112));
+  s[0].val[0] = veorq_u8(s[0].val[0], vld1q_u8(in));
+  s[0].val[1] = veorq_u8(s[0].val[1], vld1q_u8(in + 16));
+  s[1].val[0] = veorq_u8(s[1].val[0], vld1q_u8(in + 32));
+  s[1].val[1] = veorq_u8(s[1].val[1], vld1q_u8(in + 48));
+  s[2].val[0] = veorq_u8(s[2].val[0], vld1q_u8(in + 64));
+  s[2].val[1] = veorq_u8(s[2].val[1], vld1q_u8(in + 80));
+  s[3].val[0] = veorq_u8(s[3].val[0], vld1q_u8(in + 96));
+  s[3].val[1] = veorq_u8(s[3].val[1], vld1q_u8(in + 112));
 
-  vst1q_u8(out, s[0][0]);
-  vst1q_u8(out + 16, s[0][1]);
-  vst1q_u8(out + 32, s[1][0]);
-  vst1q_u8(out + 48, s[1][1]);
-  vst1q_u8(out + 64, s[2][0]);
-  vst1q_u8(out + 80, s[2][1]);
-  vst1q_u8(out + 96, s[3][0]);
-  vst1q_u8(out + 112, s[3][1]);
+  vst1q_u8_x2(out, s[0]);
+  vst1q_u8_x2(out + 32, s[1]);
+  vst1q_u8_x2(out + 64, s[2]);
+  vst1q_u8_x2(out + 96, s[3]);
 }
 
 void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int chainlen) {
-  uint8x16_t s[4][2], tmp, s_save[4][2];
+  uint8x16x2_t s[4], s_save[4];
+  uint8x16_t tmp;
   int ctr;
 
-  s_save[0][0] = s[0][0] = vld1q_u8(in);
-  s_save[0][1] = s[0][1] = vld1q_u8(in + 16);
-  s_save[1][0] = s[1][0] = vld1q_u8(in + 32);
-  s_save[1][1] = s[1][1] = vld1q_u8(in + 48);
-  s_save[2][0] = s[2][0] = vld1q_u8(in + 64);
-  s_save[2][1] = s[2][1] = vld1q_u8(in + 80);
-  s_save[3][0] = s[3][0] = vld1q_u8(in + 96);
-  s_save[3][1] = s[3][1] = vld1q_u8(in + 112);
+  s[0] = s_save[0] = vld1q_u8_x2(in);
+  s[1] = s_save[1] = vld1q_u8_x2(in + 32);
+  s[2] = s_save[2] = vld1q_u8_x2(in + 64);
+  s[3] = s_save[3] = vld1q_u8_x2(in + 96);
 
   for (ctr = 0; ctr < chainlen; ctr++) {
 
@@ -182,24 +170,20 @@ void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int cha
       AES2_4x(s[0], s[1], s[2], s[3], 5);
       MIX2_4x(s[0], s[1], s[2], s[3]);
 
-      s[0][0] = s_save[0][0] = veorq_u8(s[0][0], s_save[0][0]);
-      s[0][1] = s_save[0][1] = veorq_u8(s[0][1], s_save[0][1]);
-      s[1][0] = s_save[1][0] = veorq_u8(s[1][0], s_save[1][0]);
-      s[1][1] = s_save[1][1] = veorq_u8(s[1][1], s_save[1][1]);
-      s[2][0] = s_save[2][0] = veorq_u8(s[2][0], s_save[2][0]);
-      s[2][1] = s_save[2][1] = veorq_u8(s[2][1], s_save[2][1]);
-      s[3][0] = s_save[3][0] = veorq_u8(s[3][0], s_save[3][0]);
-      s[3][1] = s_save[3][1] = veorq_u8(s[3][1], s_save[3][1]);
+      s[0].val[0] = s_save[0].val[0] = veorq_u8(s[0].val[0], s_save[0].val[0]);
+      s[0].val[1] = s_save[0].val[1] = veorq_u8(s[0].val[1], s_save[0].val[1]);
+      s[1].val[0] = s_save[1].val[0] = veorq_u8(s[1].val[0], s_save[1].val[0]);
+      s[1].val[1] = s_save[1].val[1] = veorq_u8(s[1].val[1], s_save[1].val[1]);
+      s[2].val[0] = s_save[2].val[0] = veorq_u8(s[2].val[0], s_save[2].val[0]);
+      s[2].val[1] = s_save[2].val[1] = veorq_u8(s[2].val[1], s_save[2].val[1]);
+      s[3].val[0] = s_save[3].val[0] = veorq_u8(s[3].val[0], s_save[3].val[0]);
+      s[3].val[1] = s_save[3].val[1] = veorq_u8(s[3].val[1], s_save[3].val[1]);
   }
 
-  vst1q_u8(out, s[0][0]);
-  vst1q_u8(out + 16, s[0][1]);
-  vst1q_u8(out + 32, s[1][0]);
-  vst1q_u8(out + 48, s[1][1]);
-  vst1q_u8(out + 64, s[2][0]);
-  vst1q_u8(out + 80, s[2][1]);
-  vst1q_u8(out + 96, s[3][0]);
-  vst1q_u8(out + 112, s[3][1]);
+  vst1q_u8_x2(out, s[0]);
+  vst1q_u8_x2(out + 32, s[1]);
+  vst1q_u8_x2(out + 64, s[2]);
+  vst1q_u8_x2(out + 96, s[3]);
 }
 
 void haraka512_256(unsigned char *out, const unsigned char *in) {
@@ -211,113 +195,18 @@ void haraka512_256(unsigned char *out, const unsigned char *in) {
   s[2] = vld1q_u8(in + 32);
   s[3] = vld1q_u8(in + 48);
 
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16));
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16));
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], rc8x16[0])) ^ rc8x16[4];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], rc8x16[1])) ^ rc8x16[5];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16));
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16));
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], rc8x16[2])) ^ rc8x16[6];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], rc8x16[3])) ^ rc8x16[7];
-
-  tmp = vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1], tmp);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1], tmp);
-
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[8];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[9];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[10];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[11];
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[12];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[13];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[14];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[15];
-
-  tmp = vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1], tmp);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1], tmp);
-
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[16];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[17];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[18];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[19];
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[20];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[21];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[22];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[23];
-
-  tmp = vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1], tmp);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1], tmp);
-
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[24];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[25];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[26];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[27];
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[28];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[29];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[30];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[31];
-
-  tmp = vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1], tmp);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1], tmp);
-
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[32];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[33];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[34];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[35];
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[36];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[37];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[38];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[39];
-
-  tmp = vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1], tmp);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1], tmp);
-
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[40];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[41];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[42];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[43];
-  s[0] = vaesmcq_u8(vaeseq_u8(s[0], zero8x16)) ^ rc8x16[44];
-  s[1] = vaesmcq_u8(vaeseq_u8(s[1], zero8x16)) ^ rc8x16[45];
-  s[2] = vaesmcq_u8(vaeseq_u8(s[2], zero8x16)) ^ rc8x16[46];
-  s[3] = vaesmcq_u8(vaeseq_u8(s[3], zero8x16)) ^ rc8x16[47];
-
-  tmp = vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[1]);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2], (uint32x4_t)s[3]);
-  s[3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0], (uint32x4_t)s[2]);
-  s[2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1], tmp);
-  s[1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1], tmp);
+  AES4(s[0], s[1], s[2], s[3], 0);
+  MIX4(s[0], s[1], s[2], s[3]);
+  AES4(s[0], s[1], s[2], s[3], 1);
+  MIX4(s[0], s[1], s[2], s[3]);
+  AES4(s[0], s[1], s[2], s[3], 2);
+  MIX4(s[0], s[1], s[2], s[3]);
+  AES4(s[0], s[1], s[2], s[3], 3);
+  MIX4(s[0], s[1], s[2], s[3]);
+  AES4(s[0], s[1], s[2], s[3], 4);
+  MIX4(s[0], s[1], s[2], s[3]);
+  AES4(s[0], s[1], s[2], s[3], 5);
+  MIX4(s[0], s[1], s[2], s[3]);
 
   s[0] = veorq_u8(s[0], vld1q_u8(in));
   s[1] = veorq_u8(s[1], vld1q_u8(in + 16));
@@ -353,77 +242,14 @@ void haraka512_256_4x(unsigned char *out, const unsigned char *in) {
 
   for (unsigned idx = 0; idx < 6; ++idx) {
 
-      s[0][0] = vaesmcq_u8(vaeseq_u8(s[0][0], zero8x16)) ^ rc8x16[8 * idx + 0];
-      s[0][1] = vaesmcq_u8(vaeseq_u8(s[0][1], zero8x16)) ^ rc8x16[8 * idx + 1];
-      s[0][2] = vaesmcq_u8(vaeseq_u8(s[0][2], zero8x16)) ^ rc8x16[8 * idx + 2];
-      s[0][3] = vaesmcq_u8(vaeseq_u8(s[0][3], zero8x16)) ^ rc8x16[8 * idx + 3];
-      s[0][0] = vaesmcq_u8(vaeseq_u8(s[0][0], zero8x16)) ^ rc8x16[8 * idx + 4];
-      s[0][1] = vaesmcq_u8(vaeseq_u8(s[0][1], zero8x16)) ^ rc8x16[8 * idx + 5];
-      s[0][2] = vaesmcq_u8(vaeseq_u8(s[0][2], zero8x16)) ^ rc8x16[8 * idx + 6];
-      s[0][3] = vaesmcq_u8(vaeseq_u8(s[0][3], zero8x16)) ^ rc8x16[8 * idx + 7];
-
-      tmp = vzip1q_u32((uint32x4_t)s[0][0], (uint32x4_t)s[0][1]);
-      s[0][0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0][0], (uint32x4_t)s[0][1]);
-      s[0][1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0][2], (uint32x4_t)s[0][3]);
-      s[0][2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0][2], (uint32x4_t)s[0][3]);
-      s[0][3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0][0], (uint32x4_t)s[0][2]);
-      s[0][0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0][0], (uint32x4_t)s[0][2]);
-      s[0][2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[0][1], tmp);
-      s[0][1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[0][1], tmp);
-
-      s[1][0] = vaesmcq_u8(vaeseq_u8(s[1][0], zero8x16)) ^ rc8x16[8 * idx + 0];
-      s[1][1] = vaesmcq_u8(vaeseq_u8(s[1][1], zero8x16)) ^ rc8x16[8 * idx + 1];
-      s[1][2] = vaesmcq_u8(vaeseq_u8(s[1][2], zero8x16)) ^ rc8x16[8 * idx + 2];
-      s[1][3] = vaesmcq_u8(vaeseq_u8(s[1][3], zero8x16)) ^ rc8x16[8 * idx + 3];
-      s[1][0] = vaesmcq_u8(vaeseq_u8(s[1][0], zero8x16)) ^ rc8x16[8 * idx + 4];
-      s[1][1] = vaesmcq_u8(vaeseq_u8(s[1][1], zero8x16)) ^ rc8x16[8 * idx + 5];
-      s[1][2] = vaesmcq_u8(vaeseq_u8(s[1][2], zero8x16)) ^ rc8x16[8 * idx + 6];
-      s[1][3] = vaesmcq_u8(vaeseq_u8(s[1][3], zero8x16)) ^ rc8x16[8 * idx + 7];
-
-      tmp = vzip1q_u32((uint32x4_t)s[1][0], (uint32x4_t)s[1][1]);
-      s[1][0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1][0], (uint32x4_t)s[1][1]);
-      s[1][1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1][2], (uint32x4_t)s[1][3]);
-      s[1][2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1][2], (uint32x4_t)s[1][3]);
-      s[1][3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1][0], (uint32x4_t)s[1][2]);
-      s[1][0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1][0], (uint32x4_t)s[1][2]);
-      s[1][2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[1][1], tmp);
-      s[1][1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[1][1], tmp);
-
-      s[2][0] = vaesmcq_u8(vaeseq_u8(s[2][0], zero8x16)) ^ rc8x16[8 * idx + 0];
-      s[2][1] = vaesmcq_u8(vaeseq_u8(s[2][1], zero8x16)) ^ rc8x16[8 * idx + 1];
-      s[2][2] = vaesmcq_u8(vaeseq_u8(s[2][2], zero8x16)) ^ rc8x16[8 * idx + 2];
-      s[2][3] = vaesmcq_u8(vaeseq_u8(s[2][3], zero8x16)) ^ rc8x16[8 * idx + 3];
-      s[2][0] = vaesmcq_u8(vaeseq_u8(s[2][0], zero8x16)) ^ rc8x16[8 * idx + 4];
-      s[2][1] = vaesmcq_u8(vaeseq_u8(s[2][1], zero8x16)) ^ rc8x16[8 * idx + 5];
-      s[2][2] = vaesmcq_u8(vaeseq_u8(s[2][2], zero8x16)) ^ rc8x16[8 * idx + 6];
-      s[2][3] = vaesmcq_u8(vaeseq_u8(s[2][3], zero8x16)) ^ rc8x16[8 * idx + 7];
-
-      tmp = vzip1q_u32((uint32x4_t)s[2][0], (uint32x4_t)s[2][1]);
-      s[2][0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2][0], (uint32x4_t)s[2][1]);
-      s[2][1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2][2], (uint32x4_t)s[2][3]);
-      s[2][2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2][2], (uint32x4_t)s[2][3]);
-      s[2][3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2][0], (uint32x4_t)s[2][2]);
-      s[2][0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2][0], (uint32x4_t)s[2][2]);
-      s[2][2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[2][1], tmp);
-      s[2][1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[2][1], tmp);
-
-      s[3][0] = vaesmcq_u8(vaeseq_u8(s[3][0], zero8x16)) ^ rc8x16[8 * idx + 0];
-      s[3][1] = vaesmcq_u8(vaeseq_u8(s[3][1], zero8x16)) ^ rc8x16[8 * idx + 1];
-      s[3][2] = vaesmcq_u8(vaeseq_u8(s[3][2], zero8x16)) ^ rc8x16[8 * idx + 2];
-      s[3][3] = vaesmcq_u8(vaeseq_u8(s[3][3], zero8x16)) ^ rc8x16[8 * idx + 3];
-      s[3][0] = vaesmcq_u8(vaeseq_u8(s[3][0], zero8x16)) ^ rc8x16[8 * idx + 4];
-      s[3][1] = vaesmcq_u8(vaeseq_u8(s[3][1], zero8x16)) ^ rc8x16[8 * idx + 5];
-      s[3][2] = vaesmcq_u8(vaeseq_u8(s[3][2], zero8x16)) ^ rc8x16[8 * idx + 6];
-      s[3][3] = vaesmcq_u8(vaeseq_u8(s[3][3], zero8x16)) ^ rc8x16[8 * idx + 7];
-
-      tmp = vzip1q_u32((uint32x4_t)s[3][0], (uint32x4_t)s[3][1]);
-      s[3][0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[3][0], (uint32x4_t)s[3][1]);
-      s[3][1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[3][2], (uint32x4_t)s[3][3]);
-      s[3][2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[3][2], (uint32x4_t)s[3][3]);
-      s[3][3] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[3][0], (uint32x4_t)s[3][2]);
-      s[3][0] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[3][0], (uint32x4_t)s[3][2]);
-      s[3][2] = (uint8x16_t) vzip2q_u32((uint32x4_t)s[3][1], tmp);
-      s[3][1] = (uint8x16_t) vzip1q_u32((uint32x4_t)s[3][1], tmp);
+      AES4(s[0][0], s[0][1], s[0][2], s[0][3], idx);
+      MIX4(s[0][0], s[0][1], s[0][2], s[0][3]);
+      AES4(s[1][0], s[1][1], s[1][2], s[1][3], idx);
+      MIX4(s[1][0], s[1][1], s[1][2], s[1][3]);
+      AES4(s[2][0], s[2][1], s[2][2], s[2][3], idx);
+      MIX4(s[2][0], s[2][1], s[2][2], s[2][3]);
+      AES4(s[3][0], s[3][1], s[3][2], s[3][3], idx);
+      MIX4(s[3][0], s[3][1], s[3][2], s[3][3]);
   }
 
   s[0][0] = veorq_u8(s[0][0], vld1q_u8(in));
