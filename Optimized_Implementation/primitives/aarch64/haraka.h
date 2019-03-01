@@ -11,10 +11,10 @@
   s1 = vaesmcq_u8(vaeseq_u8(s1, LOAD(&rc8x16[4*rci + 1]))) ^ LOAD(&rc8x16[4*rci + 3]);
 
 #define AES2_4x(s0, s1, s2, s3, rci) \
-  AES2(s0[0], s0[1], rci); \
-  AES2(s1[0], s1[1], rci); \
-  AES2(s2[0], s2[1], rci); \
-  AES2(s3[0], s3[1], rci);
+  AES2(s0.val[0], s0.val[1], rci); \
+  AES2(s1.val[0], s1.val[1], rci); \
+  AES2(s2.val[0], s2.val[1], rci); \
+  AES2(s3.val[0], s3.val[1], rci);
 
 #define MIX2(s0, s1) \
   tmp = (uint8x16_t) vzip2q_u32((uint32x4_t)s0, (uint32x4_t)s1); \
@@ -22,10 +22,10 @@
   s1 = tmp;
 
 #define MIX2_4x(s0, s1, s2, s3) \
-  MIX2(s0[0], s0[1]); \
-  MIX2(s1[0], s1[1]); \
-  MIX2(s2[0], s2[1]); \
-  MIX2(s3[0], s3[1]);
+  MIX2(s0.val[0], s0.val[1]); \
+  MIX2(s1.val[0], s1.val[1]); \
+  MIX2(s2.val[0], s2.val[1]); \
+  MIX2(s3.val[0], s3.val[1]);
 
 #define AES_MIX2(s0, s1, rci) \
   AES2(s0, s1, rci); \

@@ -108,16 +108,13 @@ void haraka256_256_chain(unsigned char *out, const unsigned char *in, int chainl
 }
 
 void haraka256_256_4x(unsigned char *out, const unsigned char *in) {
-  uint8x16_t s[4][2], tmp;
+  uint8x16x2_t s[4];
+  uint8x16_t tmp;
 
-  s[0][0] = vld1q_u8(in);
-  s[0][1] = vld1q_u8(in + 16);
-  s[1][0] = vld1q_u8(in + 32);
-  s[1][1] = vld1q_u8(in + 48);
-  s[2][0] = vld1q_u8(in + 64);
-  s[2][1] = vld1q_u8(in + 80);
-  s[3][0] = vld1q_u8(in + 96);
-  s[3][1] = vld1q_u8(in + 112);
+  s[0] = vld1q_u8_x2(in);
+  s[1] = vld1q_u8_x2(in + 32);
+  s[2] = vld1q_u8_x2(in + 64);
+  s[3] = vld1q_u8_x2(in + 96);
 
   AES2_4x(s[0], s[1], s[2], s[3], 0);
   MIX2_4x(s[0], s[1], s[2], s[3]);
@@ -132,37 +129,30 @@ void haraka256_256_4x(unsigned char *out, const unsigned char *in) {
   AES2_4x(s[0], s[1], s[2], s[3], 5);
   MIX2_4x(s[0], s[1], s[2], s[3]);
 
-  s[0][0] = veorq_u8(s[0][0], vld1q_u8(in));
-  s[0][1] = veorq_u8(s[0][1], vld1q_u8(in + 16));
-  s[1][0] = veorq_u8(s[1][0], vld1q_u8(in + 32));
-  s[1][1] = veorq_u8(s[1][1], vld1q_u8(in + 48));
-  s[2][0] = veorq_u8(s[2][0], vld1q_u8(in + 64));
-  s[2][1] = veorq_u8(s[2][1], vld1q_u8(in + 80));
-  s[3][0] = veorq_u8(s[3][0], vld1q_u8(in + 96));
-  s[3][1] = veorq_u8(s[3][1], vld1q_u8(in + 112));
+  s[0].val[0] = veorq_u8(s[0].val[0], vld1q_u8(in));
+  s[0].val[1] = veorq_u8(s[0].val[1], vld1q_u8(in + 16));
+  s[1].val[0] = veorq_u8(s[1].val[0], vld1q_u8(in + 32));
+  s[1].val[1] = veorq_u8(s[1].val[1], vld1q_u8(in + 48));
+  s[2].val[0] = veorq_u8(s[2].val[0], vld1q_u8(in + 64));
+  s[2].val[1] = veorq_u8(s[2].val[1], vld1q_u8(in + 80));
+  s[3].val[0] = veorq_u8(s[3].val[0], vld1q_u8(in + 96));
+  s[3].val[1] = veorq_u8(s[3].val[1], vld1q_u8(in + 112));
 
-  vst1q_u8(out, s[0][0]);
-  vst1q_u8(out + 16, s[0][1]);
-  vst1q_u8(out + 32, s[1][0]);
-  vst1q_u8(out + 48, s[1][1]);
-  vst1q_u8(out + 64, s[2][0]);
-  vst1q_u8(out + 80, s[2][1]);
-  vst1q_u8(out + 96, s[3][0]);
-  vst1q_u8(out + 112, s[3][1]);
+  vst1q_u8_x2(out, s[0]);
+  vst1q_u8_x2(out + 32, s[1]);
+  vst1q_u8_x2(out + 64, s[2]);
+  vst1q_u8_x2(out + 96, s[3]);
 }
 
 void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int chainlen) {
-  uint8x16_t s[4][2], tmp, s_save[4][2];
+  uint8x16x2_t s[4], s_save[4];
+  uint8x16_t tmp;
   int ctr;
 
-  s_save[0][0] = s[0][0] = vld1q_u8(in);
-  s_save[0][1] = s[0][1] = vld1q_u8(in + 16);
-  s_save[1][0] = s[1][0] = vld1q_u8(in + 32);
-  s_save[1][1] = s[1][1] = vld1q_u8(in + 48);
-  s_save[2][0] = s[2][0] = vld1q_u8(in + 64);
-  s_save[2][1] = s[2][1] = vld1q_u8(in + 80);
-  s_save[3][0] = s[3][0] = vld1q_u8(in + 96);
-  s_save[3][1] = s[3][1] = vld1q_u8(in + 112);
+  s[0] = s_save[0] = vld1q_u8_x2(in);
+  s[1] = s_save[1] = vld1q_u8_x2(in + 32);
+  s[2] = s_save[2] = vld1q_u8_x2(in + 64);
+  s[3] = s_save[3] = vld1q_u8_x2(in + 96);
 
   for (ctr = 0; ctr < chainlen; ctr++) {
 
@@ -180,24 +170,20 @@ void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int cha
       AES2_4x(s[0], s[1], s[2], s[3], 5);
       MIX2_4x(s[0], s[1], s[2], s[3]);
 
-      s[0][0] = s_save[0][0] = veorq_u8(s[0][0], s_save[0][0]);
-      s[0][1] = s_save[0][1] = veorq_u8(s[0][1], s_save[0][1]);
-      s[1][0] = s_save[1][0] = veorq_u8(s[1][0], s_save[1][0]);
-      s[1][1] = s_save[1][1] = veorq_u8(s[1][1], s_save[1][1]);
-      s[2][0] = s_save[2][0] = veorq_u8(s[2][0], s_save[2][0]);
-      s[2][1] = s_save[2][1] = veorq_u8(s[2][1], s_save[2][1]);
-      s[3][0] = s_save[3][0] = veorq_u8(s[3][0], s_save[3][0]);
-      s[3][1] = s_save[3][1] = veorq_u8(s[3][1], s_save[3][1]);
+      s[0].val[0] = s_save[0].val[0] = veorq_u8(s[0].val[0], s_save[0].val[0]);
+      s[0].val[1] = s_save[0].val[1] = veorq_u8(s[0].val[1], s_save[0].val[1]);
+      s[1].val[0] = s_save[1].val[0] = veorq_u8(s[1].val[0], s_save[1].val[0]);
+      s[1].val[1] = s_save[1].val[1] = veorq_u8(s[1].val[1], s_save[1].val[1]);
+      s[2].val[0] = s_save[2].val[0] = veorq_u8(s[2].val[0], s_save[2].val[0]);
+      s[2].val[1] = s_save[2].val[1] = veorq_u8(s[2].val[1], s_save[2].val[1]);
+      s[3].val[0] = s_save[3].val[0] = veorq_u8(s[3].val[0], s_save[3].val[0]);
+      s[3].val[1] = s_save[3].val[1] = veorq_u8(s[3].val[1], s_save[3].val[1]);
   }
 
-  vst1q_u8(out, s[0][0]);
-  vst1q_u8(out + 16, s[0][1]);
-  vst1q_u8(out + 32, s[1][0]);
-  vst1q_u8(out + 48, s[1][1]);
-  vst1q_u8(out + 64, s[2][0]);
-  vst1q_u8(out + 80, s[2][1]);
-  vst1q_u8(out + 96, s[3][0]);
-  vst1q_u8(out + 112, s[3][1]);
+  vst1q_u8_x2(out, s[0]);
+  vst1q_u8_x2(out + 32, s[1]);
+  vst1q_u8_x2(out + 64, s[2]);
+  vst1q_u8_x2(out + 96, s[3]);
 }
 
 void haraka512_256(unsigned char *out, const unsigned char *in) {
