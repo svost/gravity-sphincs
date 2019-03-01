@@ -66,47 +66,45 @@ static const uint8x16_t rc8x16[48] = {
 
 // haraka_f 6 rounds
 void haraka256_256(unsigned char *out, const unsigned char *in) {
-  uint8x16_t s[2], tmp, s_save[2];
+  uint8x16x2_t s, s_save;
+  uint8x16_t tmp;
 
-  s_save[0] = s[0] = vld1q_u8(in);
-  s_save[1] = s[1] = vld1q_u8(in + 16);
+  s = s_save = vld1q_u8_x2(in);
 
-  AES_MIX2(s[0], s[1], 0);
-  AES_MIX2(s[0], s[1], 1);
-  AES_MIX2(s[0], s[1], 2);
-  AES_MIX2(s[0], s[1], 3);
-  AES_MIX2(s[0], s[1], 4);
-  AES_MIX2(s[0], s[1], 5);
+  AES_MIX2(s.val[0], s.val[1], 0);
+  AES_MIX2(s.val[0], s.val[1], 1);
+  AES_MIX2(s.val[0], s.val[1], 2);
+  AES_MIX2(s.val[0], s.val[1], 3);
+  AES_MIX2(s.val[0], s.val[1], 4);
+  AES_MIX2(s.val[0], s.val[1], 5);
 
-  s[0] = veorq_u8(s[0], s_save[0]);
-  s[1] = veorq_u8(s[1], s_save[1]);
+  s.val[0] = veorq_u8(s.val[0], s_save.val[0]);
+  s.val[1] = veorq_u8(s.val[1], s_save.val[1]);
 
-  vst1q_u8(out, s[0]);
-  vst1q_u8(out + 16, s[1]);
+  vst1q_u8_x2(out, s);
 }
 
 void haraka256_256_chain(unsigned char *out, const unsigned char *in, int chainlen) {
-  uint8x16_t s[2], tmp, s_save[2];
+  uint8x16x2_t s, s_save;
   int cnt;
+  uint8x16_t tmp;
 
-  s_save[0] = s[0] = vld1q_u8(in);
-  s_save[1] = s[1] = vld1q_u8(in + 16);
+  s = s_save = vld1q_u8_x2(in);
 
   for (cnt = 0; cnt < chainlen; cnt++) {
 
-    AES_MIX2(s[0], s[1], 0);
-    AES_MIX2(s[0], s[1], 1);
-    AES_MIX2(s[0], s[1], 2);
-    AES_MIX2(s[0], s[1], 3);
-    AES_MIX2(s[0], s[1], 4);
-    AES_MIX2(s[0], s[1], 5);
+    AES_MIX2(s.val[0], s.val[1], 0);
+    AES_MIX2(s.val[0], s.val[1], 1);
+    AES_MIX2(s.val[0], s.val[1], 2);
+    AES_MIX2(s.val[0], s.val[1], 3);
+    AES_MIX2(s.val[0], s.val[1], 4);
+    AES_MIX2(s.val[0], s.val[1], 5);
 
-    s[0] = s_save[0] = veorq_u8(s[0], s_save[0]);
-    s[1] = s_save[1] = veorq_u8(s[1], s_save[1]);
+    s.val[0] = s_save.val[0] = veorq_u8(s.val[0], s_save.val[0]);
+    s.val[1] = s_save.val[1] = veorq_u8(s.val[1], s_save.val[1]);
   }
 
-  vst1q_u8(out, s[0]);
-  vst1q_u8(out + 16, s[1]);
+  vst1q_u8_x2(out, s);
 }
 
 void haraka256_256_4x(unsigned char *out, const unsigned char *in) {
