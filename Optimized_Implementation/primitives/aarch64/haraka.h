@@ -41,6 +41,16 @@
   s2 = vreinterpretq_u8_u32(vzip2q_u32((uint32x4_t)s1, tmp)); \
   s1 = vreinterpretq_u8_u32(vzip1q_u32((uint32x4_t)s1, tmp));
 
+#define AES4(s0, s1, s2, s3, rci ) \
+  s0 = vaesmcq_u8(vaeseq_u8(s0, zero8x16)); \
+  s1 = vaesmcq_u8(vaeseq_u8(s1, zero8x16)); \
+  s0 = vaesmcq_u8(vaeseq_u8(s0, rc8x16[8*rci + 0])) ^ rc8x16[8*rci + 4]; \
+  s1 = vaesmcq_u8(vaeseq_u8(s1, rc8x16[8*rci + 1])) ^ rc8x16[8*rci + 5]; \
+  s2 = vaesmcq_u8(vaeseq_u8(s2, zero8x16)); \
+  s3 = vaesmcq_u8(vaeseq_u8(s3, zero8x16)); \
+  s2 = vaesmcq_u8(vaeseq_u8(s2, rc8x16[8*rci + 2])) ^ rc8x16[8*rci + 6]; \
+  s3 = vaesmcq_u8(vaeseq_u8(s3, rc8x16[8*rci + 3])) ^ rc8x16[8*rci + 7];
+
 void haraka256_256(unsigned char *out, const unsigned char *in);
 void haraka256_256_4x(unsigned char *out, const unsigned char *in);
 void haraka256_256_chain(unsigned char *out, const unsigned char *in, int chainlen);
