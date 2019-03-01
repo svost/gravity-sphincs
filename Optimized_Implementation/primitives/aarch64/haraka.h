@@ -31,6 +31,16 @@
   AES2(s0, s1, rci); \
   MIX2(s0, s1);
 
+#define MIX4(s0, s1, s2, s3) \
+  tmp = vzip1q_u32((uint32x4_t)s0, (uint32x4_t)s1); \
+  s0 = vreinterpretq_u8_u32(vzip2q_u32((uint32x4_t)s0, (uint32x4_t)s1)); \
+  s1 = vreinterpretq_u8_u32(vzip1q_u32((uint32x4_t)s2, (uint32x4_t)s3)); \
+  s2 = vreinterpretq_u8_u32(vzip2q_u32((uint32x4_t)s2, (uint32x4_t)s3)); \
+  s3 = vreinterpretq_u8_u32(vzip1q_u32((uint32x4_t)s0, (uint32x4_t)s2)); \
+  s0 = vreinterpretq_u8_u32(vzip2q_u32((uint32x4_t)s0, (uint32x4_t)s2)); \
+  s2 = vreinterpretq_u8_u32(vzip2q_u32((uint32x4_t)s1, tmp)); \
+  s1 = vreinterpretq_u8_u32(vzip1q_u32((uint32x4_t)s1, tmp));
+
 void haraka256_256(unsigned char *out, const unsigned char *in);
 void haraka256_256_4x(unsigned char *out, const unsigned char *in);
 void haraka256_256_chain(unsigned char *out, const unsigned char *in, int chainlen);
