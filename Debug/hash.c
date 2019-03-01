@@ -44,9 +44,9 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     //
     // NOTE: We need a full set of HASH_SIZE-byte chunks. If case
     //   if we don't, then fill the remaining space with zeros.
-    size_t full_chunks = srclen / HASH_SIZE; // Fully completed chunks
-    size_t tail_len = srclen - HASH_SIZE * full_chunks; // Tail of data remaining after filling all of the completed chunks
-    size_t total_chunks = (full_chunks == 0) ? 1 : (full_chunks + (tail_len != 0 ? 1 : 0)); // Full chunks plus uncompleted one if there is any tail present
+    size_t full_chunks = srclen / HASH_SIZE;
+    size_t tail_len = srclen % HASH_SIZE;
+    size_t total_chunks = full_chunks + !!tail_len;
     
     // Step 1: Populate zero level of nodes with chunks of input data
     struct hash * nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element

@@ -1,8 +1,10 @@
 /*
  * Copyright (C) 2017 Nagravision S.A.
  */
-#include "../hash.h"
-#include "haraka.h"
+#include "hash.h"
+#include "primitives/haraka.h"
+#include "primitives/kiss99.h"
+
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -21,6 +23,21 @@ void hash_2N_to_N(struct hash *dst, const struct hash *src)
     haraka512_256(dst->h, src->h);
 }
 
+void hash_4N_to_4N(struct hash *dst, const struct hash *src)
+{
+    haraka256_256_4x(dst->h, src->h);
+}
+
+void hash_4N_to_4N_chain(struct hash *dst, const struct hash *src, int chainlen)
+{
+    haraka256_256_4x_chain(dst->h, src->h, chainlen);
+}
+
+void hash_8N_to_4N(struct hash *dst, const struct hash *src)
+{
+    haraka512_256_4x(dst->h, src->h);
+}
+
 void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
 {
     // Split original data to HASH_SIZE-byte chunks
@@ -28,10 +45,10 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     //
     // NOTE: We need a full set of HASH_SIZE-byte chunks. If case
     //   if we don't, then fill the remaining space with zeros.
-    size_t full_chunks = srclen / HASH_SIZE; // Fully completed chunks
-    size_t tail_len = srclen - HASH_SIZE * full_chunks; // Tail of data remaining after filling all of the completed chunks
-    size_t total_chunks = (full_chunks == 0) ? 1 : (full_chunks + (tail_len != 0 ? 1 : 0)); // Full chunks plus uncompleted one if there is any tail present
-    
+    size_t full_chunks = srclen / HASH_SIZE;
+    size_t tail_len = srclen % HASH_SIZE;
+    size_t total_chunks = full_chunks + !!tail_len;
+
     // Step 1: Populate zero level of nodes with chunks of input data
     struct hash * nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
     memset((unsigned char*)&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
@@ -71,6 +88,8 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
 void hash_compress_pairs(struct hash *dst, const struct hash *src, int count)
 {
     int i = 0;
+    for (; i+4 <= count; i+=4)
+        hash_8N_to_4N(&dst[i], &src[2*i]);
     for (; i < count; ++i)
         hash_2N_to_N(&dst[i], &src[2*i]);
 }
@@ -83,6 +102,8 @@ void hash_compress_all(struct hash *dst, const struct hash *src, int count)
 void hash_parallel(struct hash *dst, const struct hash *src, int count)
 {
     int i = 0;
+    for (; i+4 <= count; i+=4)
+        hash_4N_to_4N(&dst[i], &src[i]);
     for (; i < count; ++i)
         hash_N_to_N(&dst[i], &src[i]);
 }
@@ -90,6 +111,8 @@ void hash_parallel(struct hash *dst, const struct hash *src, int count)
 void hash_parallel_chains(struct hash *dst, const struct hash *src, int count, int chainlen)
 {
     int i = 0;
+    for (; i+4 <= count; i+=4)
+        hash_4N_to_4N_chain(&dst[i], &src[i], chainlen);
     for (; i < count; ++i)
         hash_N_to_N_chain(&dst[i], &src[i], chainlen);
 }
