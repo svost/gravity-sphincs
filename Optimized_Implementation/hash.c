@@ -3,6 +3,7 @@
  */
 #include "hash.h"
 #include "primitives/haraka.h"
+#include "primitives/kiss99.h"
 
 #include <stdlib.h>
 #include <stdbool.h>

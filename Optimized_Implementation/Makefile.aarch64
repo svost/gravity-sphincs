@@ -1,4 +1,4 @@
-SRC=batch.c bench.c gravity.c hash.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/aarch64/*.c)
+SRC=batch.c bench.c gravity.c hash.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/aarch64/*.c) $(wildcard primitives/*.c)
 
 CFLAGS_COMMON=-DAARCH64 -std=c11 -pedantic -Wall -Wextra -Wno-long-long -march=armv8-a+simd+crypto
 
