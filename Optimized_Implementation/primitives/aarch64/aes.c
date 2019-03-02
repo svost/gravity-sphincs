@@ -15,19 +15,19 @@
 
 static const uint8x16_t zero8x16 = {0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
 
-static int32x4_t assist256_1 (int32x4_t a, int32x4_t b) {
-    int32x4_t c = {0,0,0,0};
+static uint8x16_t assist256_1 (uint8x16_t a, int32x4_t b) {
+    uint8x16_t c;
     b = vdupq_laneq_s32(b, 3); // shuffle ( , 0xff or 3,3,3,3)
-    c = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(a), 12)); // slli (12 = 16 - 4)
-    a = veorq_s32(a, c); // xor
-    c = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(c), 12));
-    a = veorq_s32(a, c);
-    c = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(c), 12));
-    a = veorq_s32(a, c);
-    return veorq_s32(a, b); // return a = veorq_s32(a, b);
+    c = vextq_u8(vdupq_n_u8(0), a, 12); // slli (12 = 16 - 4)
+    a = veorq_u8(a, c);
+    c = vextq_u8(vdupq_n_u8(0), c, 12);
+    a = veorq_u8(a, c);
+    c = vextq_u8(vdupq_n_u8(0), c, 12);
+    a = veorq_u8(a, c);
+    return vreinterpretq_u8_s32(veorq_s32((int32x4_t)a, b)); // return a = veorq_s32(a, b);
 }
 
-static int32x4_t assist256_2 (int32x4_t a, int32x4_t c) {
+static uint8x16_t assist256_2 (int32x4_t a, int32x4_t c) {
     int32x4_t b = {0,0,0,0}, d = {0,0,0,0};
 
     d = (int32x4_t)vaeseq_u8((uint8x16_t)a, zero8x16);
@@ -46,54 +46,53 @@ static int32x4_t assist256_2 (int32x4_t a, int32x4_t c) {
     c = veorq_s32(c, d);
     d = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(d), 12));
     c = veorq_s32(c, d);
-    return veorq_s32(c, b); // return c = veorq_s32(c, b);
+    return vreinterpretq_u8_s32(veorq_s32(c, b)); // return c = veorq_s32(c, b);
 }
 
-static  int32x4_t aeskeygenassist (int32x4_t a, unsigned rcon) {
+static uint8x16_t aeskeygenassist(uint8x16_t a, unsigned rcon) {
 
-    a = (int32x4_t)vaeseq_u8((uint8x16_t)a, zero8x16);
-    uint8x16_t d_tmp = (uint8x16_t)a;
+    a = vaeseq_u8(a, zero8x16);
     uint8x16_t dest = {
-        d_tmp[0x4], d_tmp[0x1], d_tmp[0xE], d_tmp[0xB],
-        d_tmp[0x1], d_tmp[0xE], d_tmp[0xB], d_tmp[0x4],
-        d_tmp[0xC], d_tmp[0x9], d_tmp[0x6], d_tmp[0x3],
-        d_tmp[0x9], d_tmp[0x6], d_tmp[0x3], d_tmp[0xC]
+        a[0x4], a[0x1], a[0xE], a[0xB],
+        a[0x1], a[0xE], a[0xB], a[0x4],
+        a[0xC], a[0x9], a[0x6], a[0x3],
+        a[0x9], a[0x6], a[0x3], a[0xC]
     };
-    return (int32x4_t)(vreinterpretq_u32_u8(dest) ^ (uint32x4_t){0, rcon, 0, rcon});
+    return (uint8x16_t)(vreinterpretq_u32_u8(dest) ^ (uint32x4_t){0, rcon, 0, rcon});
 }
 
-void expand256(int32x4_t* keyExp, const int32x4_t* userkey)
+void expand256(uint8x16_t* keyExp, const uint8x16_t* userkey)
 {
-    int32x4_t temp1, temp2, temp3;
+    uint8x16_t temp1, temp2, temp3;
 
-    temp1 = keyExp[0] = vld1q_s32((int32_t *)userkey);
-    temp3 = keyExp[1] = vld1q_s32((int32_t *)(userkey+1));
+    temp1 = keyExp[0] = vld1q_u8((uint8_t *)userkey);
+    temp3 = keyExp[1] = vld1q_u8((uint8_t *)(userkey+1));
 
     temp2 = aeskeygenassist(temp3, 0x01);
-    temp1 = keyExp[2] = assist256_1(temp1, temp2);
-    temp3 = keyExp[3] = assist256_2(temp1, temp3);
+    temp1 = keyExp[2] = assist256_1(temp1, (int32x4_t)temp2);
+    temp3 = keyExp[3] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
 
     temp2 = aeskeygenassist(temp3, 0x02);
-    temp1 = keyExp[4] = assist256_1(temp1, temp2);
-    temp3 = keyExp[5] = assist256_2(temp1, temp3);
+    temp1 = keyExp[4] = assist256_1(temp1, (int32x4_t)temp2);
+    temp3 = keyExp[5] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
 
     temp2 = aeskeygenassist(temp3, 0x04);
-    temp1 = keyExp[6] = assist256_1(temp1, temp2);
-    temp3 = keyExp[7] = assist256_2(temp1, temp3);
+    temp1 = keyExp[6] = assist256_1(temp1, (int32x4_t)temp2);
+    temp3 = keyExp[7] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
 
     temp2 = aeskeygenassist(temp3, 0x08);
-    temp1 = keyExp[8] = assist256_1(temp1, temp2);
-    temp3 = keyExp[9] = assist256_2(temp1, temp3);
+    temp1 = keyExp[8] = assist256_1(temp1, (int32x4_t)temp2);
+    temp3 = keyExp[9] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
 
     temp2 = aeskeygenassist(temp3, 0x10);
-    temp1 = keyExp[10] = assist256_1(temp1, temp2);
-    temp3 = keyExp[11] = assist256_2(temp1, temp3);
+    temp1 = keyExp[10] = assist256_1(temp1, (int32x4_t)temp2);
+    temp3 = keyExp[11] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
 
     temp2 = aeskeygenassist(temp3, 0x20);
-    temp1 = keyExp[12] = assist256_1(temp1, temp2);
-    temp3 = keyExp[13] = assist256_2(temp1, temp3);
+    temp1 = keyExp[12] = assist256_1(temp1, (int32x4_t)temp2);
+    temp3 = keyExp[13] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
 
-    keyExp[14] = assist256_1(temp1, aeskeygenassist(temp3, 0x40));
+    keyExp[14] = assist256_1(temp1, (int32x4_t)aeskeygenassist(temp3, 0x40));
 }
 
 static int32x4_t increment_be_neon(int32x4_t x) {
@@ -105,7 +104,7 @@ static int32x4_t increment_be_neon(int32x4_t x) {
     return x;
 }
 
-void aesctr256_direct_x4 (uint8_t *out, const int32x4_t *rkeys, const void *counter, size_t bytes) {
+void aesctr256_direct_x4 (uint8_t *out, const uint8x16_t *rkeys, const void *counter, size_t bytes) {
     uint8x16_t s1, s2, s3, s4;
     int32x4_t ctr, *bo;
     /* bytes will always be a multiple of 16 */
@@ -118,72 +117,72 @@ void aesctr256_direct_x4 (uint8_t *out, const int32x4_t *rkeys, const void *coun
     bo = (int32x4_t *)out;
 
     for (i = 0; i < blocks_parallel; i += 4) {
-        s1 = vaesmcq_u8(vaeseq_u8(ctr, (uint8x16_t)rkeys[0]));
+        s1 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
-        s2 = vaesmcq_u8(vaeseq_u8(ctr, (uint8x16_t)rkeys[0]));
+        s2 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
-        s3 = vaesmcq_u8(vaeseq_u8(ctr, (uint8x16_t)rkeys[0]));
+        s3 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
-        s4 = vaesmcq_u8(vaeseq_u8(ctr, (uint8x16_t)rkeys[0]));
+        s4 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
 
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[1]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[1]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[1]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[1]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[2]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[2]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[2]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[2]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[3]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[3]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[3]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[3]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[4]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[4]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[4]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[4]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[5]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[5]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[5]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[5]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[6]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[6]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[6]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[6]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[7]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[7]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[7]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[7]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[8]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[8]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[8]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[8]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[9]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[9]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[9]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[9]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[10]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[10]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[10]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[10]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[11]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[11]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[11]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[11]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[12]));
-        s2 = vaesmcq_u8(vaeseq_u8(s2, (uint8x16_t)rkeys[12]));
-        s3 = vaesmcq_u8(vaeseq_u8(s3, (uint8x16_t)rkeys[12]));
-        s4 = vaesmcq_u8(vaeseq_u8(s4, (uint8x16_t)rkeys[12]));
-        s1 = vaeseq_u8(s1, (uint8x16_t)rkeys[13]);
-        s2 = vaeseq_u8(s2, (uint8x16_t)rkeys[13]);
-        s3 = vaeseq_u8(s3, (uint8x16_t)rkeys[13]);
-        s4 = vaeseq_u8(s4, (uint8x16_t)rkeys[13]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[1]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[1]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[1]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[1]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[2]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[2]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[2]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[2]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[3]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[3]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[3]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[3]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[4]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[4]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[4]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[4]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[5]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[5]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[5]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[5]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[6]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[6]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[6]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[6]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[7]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[7]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[7]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[7]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[8]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[8]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[8]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[8]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[9]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[9]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[9]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[9]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[10]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[10]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[10]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[10]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[11]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[11]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[11]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[11]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[12]));
+        s2 = vaesmcq_u8(vaeseq_u8(s2, rkeys[12]));
+        s3 = vaesmcq_u8(vaeseq_u8(s3, rkeys[12]));
+        s4 = vaesmcq_u8(vaeseq_u8(s4, rkeys[12]));
+        s1 = vaeseq_u8(s1, rkeys[13]);
+        s2 = vaeseq_u8(s2, rkeys[13]);
+        s3 = vaeseq_u8(s3, rkeys[13]);
+        s4 = vaeseq_u8(s4, rkeys[13]);
 
-        s1 = s1 ^ (uint8x16_t)rkeys[14];
-        s2 = s2 ^ (uint8x16_t)rkeys[14];
-        s3 = s3 ^ (uint8x16_t)rkeys[14];
-        s4 = s4 ^ (uint8x16_t)rkeys[14];
+        s1 = s1 ^ rkeys[14];
+        s2 = s2 ^ rkeys[14];
+        s3 = s3 ^ rkeys[14];
+        s4 = s4 ^ rkeys[14];
 
         vst1q_s32((int32_t*)(bo + i), vreinterpretq_s32_u8(s1));
         vst1q_s32((int32_t*)(bo + i + 1), vreinterpretq_s32_u8(s2));
@@ -193,23 +192,23 @@ void aesctr256_direct_x4 (uint8_t *out, const int32x4_t *rkeys, const void *coun
     }
 
     for (i = 0; i < blocks_left; i++) {
-        s1 = vaesmcq_u8(vaeseq_u8(ctr, (uint8x16_t)rkeys[0]));
+        s1 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[1]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[2]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[3]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[4]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[5]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[6]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[7]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[8]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[9]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[10]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[11]));
-        s1 = vaesmcq_u8(vaeseq_u8(s1, (uint8x16_t)rkeys[12]));
-        s1 = vaeseq_u8(s1, (uint8x16_t)rkeys[13]);
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[1]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[2]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[3]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[4]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[5]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[6]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[7]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[8]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[9]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[10]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[11]));
+        s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[12]));
+        s1 = vaeseq_u8(s1, rkeys[13]);
 
-        s1 = s1 ^ (uint8x16_t)rkeys[14];
+        s1 = s1 ^ rkeys[14];
 
         vst1q_s32((int32_t*)(bo + blocks_parallel + i), vreinterpretq_s32_u8(s1));
 
@@ -222,7 +221,7 @@ void aesctr256_zeroiv (uint8_t *out, const uint8_t *sk, int bytes) {
 }
 
 void aesctr256 (uint8_t *out, const uint8_t *k, const void *counter, int bytes) {
-    int32x4_t rkeys[15];
-    expand256 (rkeys, (int32x4_t *)k);
+    uint8x16_t rkeys[15];
+    expand256 (rkeys, (uint8x16_t *)k);
     aesctr256_direct_x4 (out, rkeys, counter, bytes);
 }
