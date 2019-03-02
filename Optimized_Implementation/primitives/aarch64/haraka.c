@@ -206,10 +206,7 @@ void haraka512_256(unsigned char *out, const unsigned char *in) {
   AES4(s.val[0], s.val[1], s.val[2], s.val[3], 5);
   MIX4(s.val[0], s.val[1], s.val[2], s.val[3]);
 
-  s.val[0] = veorq_u8(s.val[0], vld1q_u8(in));
-  s.val[1] = veorq_u8(s.val[1], vld1q_u8(in + 16));
-  s.val[2] = veorq_u8(s.val[2], vld1q_u8(in + 32));
-  s.val[3] = veorq_u8(s.val[3], vld1q_u8(in + 48));
+  XOR_STRUCT(s, 0);
 
   // preparation for packet write to out
   s_out.val[0] = vzip2q_u64((uint64x2_t)s.val[0], (uint64x2_t)s.val[1]);
@@ -240,22 +237,10 @@ void haraka512_256_4x(unsigned char *out, const unsigned char *in) {
       MIX4(s[3].val[0], s[3].val[1], s[3].val[2], s[3].val[3]);
   }
 
-  s[0].val[0] = veorq_u8(s[0].val[0], vld1q_u8(in));
-  s[0].val[1] = veorq_u8(s[0].val[1], vld1q_u8(in + 16));
-  s[0].val[2] = veorq_u8(s[0].val[2], vld1q_u8(in + 32));
-  s[0].val[3] = veorq_u8(s[0].val[3], vld1q_u8(in + 48));
-  s[1].val[0] = veorq_u8(s[1].val[0], vld1q_u8(in + 64));
-  s[1].val[1] = veorq_u8(s[1].val[1], vld1q_u8(in + 80));
-  s[1].val[2] = veorq_u8(s[1].val[2], vld1q_u8(in + 96));
-  s[1].val[3] = veorq_u8(s[1].val[3], vld1q_u8(in + 112));
-  s[2].val[0] = veorq_u8(s[2].val[0], vld1q_u8(in + 128));
-  s[2].val[1] = veorq_u8(s[2].val[1], vld1q_u8(in + 144));
-  s[2].val[2] = veorq_u8(s[2].val[2], vld1q_u8(in + 160));
-  s[2].val[3] = veorq_u8(s[2].val[3], vld1q_u8(in + 176));
-  s[3].val[0] = veorq_u8(s[3].val[0], vld1q_u8(in + 192));
-  s[3].val[1] = veorq_u8(s[3].val[1], vld1q_u8(in + 208));
-  s[3].val[2] = veorq_u8(s[3].val[2], vld1q_u8(in + 224));
-  s[3].val[3] = veorq_u8(s[3].val[3], vld1q_u8(in + 240));
+  XOR_STRUCT(s[0], 0);
+  XOR_STRUCT(s[1], 1);
+  XOR_STRUCT(s[2], 2);
+  XOR_STRUCT(s[3], 3);
 
   // preparation for packet write to out
   s_out.val[0] = vzip2q_u64((uint64x2_t)s[0].val[0], (uint64x2_t)s[0].val[1]);
