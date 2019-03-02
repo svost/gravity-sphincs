@@ -44,7 +44,7 @@ bench:		$(SRC)
 			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o bench
 			./bench
 
-harakasum:	hash.c harakasum.c primitives/aarch64/haraka.c
+harakasum:	hash.c harakasum.c primitives/aarch64/haraka.c primitives/kiss99.c
 			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o harakasum
 
 format:
