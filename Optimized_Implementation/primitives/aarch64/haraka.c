@@ -187,103 +187,73 @@ void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int cha
 }
 
 void haraka512_256(unsigned char *out, const unsigned char *in) {
-  uint8x16_t s[4];
+  uint8x16x4_t s;
+  uint64x2x2_t s_out;
   uint32x4_t tmp;
 
-  s[0] = vld1q_u8(in);
-  s[1] = vld1q_u8(in + 16);
-  s[2] = vld1q_u8(in + 32);
-  s[3] = vld1q_u8(in + 48);
+  s = vld1q_u8_x4(in);
 
-  AES4(s[0], s[1], s[2], s[3], 0);
-  MIX4(s[0], s[1], s[2], s[3]);
-  AES4(s[0], s[1], s[2], s[3], 1);
-  MIX4(s[0], s[1], s[2], s[3]);
-  AES4(s[0], s[1], s[2], s[3], 2);
-  MIX4(s[0], s[1], s[2], s[3]);
-  AES4(s[0], s[1], s[2], s[3], 3);
-  MIX4(s[0], s[1], s[2], s[3]);
-  AES4(s[0], s[1], s[2], s[3], 4);
-  MIX4(s[0], s[1], s[2], s[3]);
-  AES4(s[0], s[1], s[2], s[3], 5);
-  MIX4(s[0], s[1], s[2], s[3]);
+  AES4(s.val[0], s.val[1], s.val[2], s.val[3], 0);
+  MIX4(s.val[0], s.val[1], s.val[2], s.val[3]);
+  AES4(s.val[0], s.val[1], s.val[2], s.val[3], 1);
+  MIX4(s.val[0], s.val[1], s.val[2], s.val[3]);
+  AES4(s.val[0], s.val[1], s.val[2], s.val[3], 2);
+  MIX4(s.val[0], s.val[1], s.val[2], s.val[3]);
+  AES4(s.val[0], s.val[1], s.val[2], s.val[3], 3);
+  MIX4(s.val[0], s.val[1], s.val[2], s.val[3]);
+  AES4(s.val[0], s.val[1], s.val[2], s.val[3], 4);
+  MIX4(s.val[0], s.val[1], s.val[2], s.val[3]);
+  AES4(s.val[0], s.val[1], s.val[2], s.val[3], 5);
+  MIX4(s.val[0], s.val[1], s.val[2], s.val[3]);
 
-  s[0] = veorq_u8(s[0], vld1q_u8(in));
-  s[1] = veorq_u8(s[1], vld1q_u8(in + 16));
-  s[2] = veorq_u8(s[2], vld1q_u8(in + 32));
-  s[3] = veorq_u8(s[3], vld1q_u8(in + 48));
+  XOR_STRUCT(s, 0);
 
-  *(uint64_t*)(out) = vreinterpretq_u64_u8(s[0])[1];
-  *(uint64_t*)(out + 8) = vreinterpretq_u64_u8(s[1])[1];
-  *(uint64_t*)(out + 16) = vreinterpretq_u64_u8(s[2])[0];
-  *(uint64_t*)(out + 24) = vreinterpretq_u64_u8(s[3])[0];
+  // preparation for packet write to out
+  s_out.val[0] = vzip2q_u64((uint64x2_t)s.val[0], (uint64x2_t)s.val[1]);
+  s_out.val[1] = vzip1q_u64((uint64x2_t)s.val[2], (uint64x2_t)s.val[3]);
+
+  vst1q_u64_x2((uint64_t *)out, s_out);
 }
 
 void haraka512_256_4x(unsigned char *out, const unsigned char *in) {
-  uint8x16_t s[4][4];
+  uint8x16x4_t s[4];
   uint32x4_t tmp;
+  uint64x2x4_t s_out;
 
-  s[0][0] = vld1q_u8(in);
-  s[0][1] = vld1q_u8(in + 16);
-  s[0][2] = vld1q_u8(in + 32);
-  s[0][3] = vld1q_u8(in + 48);
-  s[1][0] = vld1q_u8(in + 64);
-  s[1][1] = vld1q_u8(in + 80);
-  s[1][2] = vld1q_u8(in + 96);
-  s[1][3] = vld1q_u8(in + 112);
-  s[2][0] = vld1q_u8(in + 128);
-  s[2][1] = vld1q_u8(in + 144);
-  s[2][2] = vld1q_u8(in + 160);
-  s[2][3] = vld1q_u8(in + 176);
-  s[3][0] = vld1q_u8(in + 192);
-  s[3][1] = vld1q_u8(in + 208);
-  s[3][2] = vld1q_u8(in + 224);
-  s[3][3] = vld1q_u8(in + 240);
+  s[0] = vld1q_u8_x4(in);
+  s[1] = vld1q_u8_x4(in + 64);
+  s[2] = vld1q_u8_x4(in + 128);
+  s[3] = vld1q_u8_x4(in + 192);
 
   for (unsigned idx = 0; idx < 6; ++idx) {
 
-      AES4(s[0][0], s[0][1], s[0][2], s[0][3], idx);
-      MIX4(s[0][0], s[0][1], s[0][2], s[0][3]);
-      AES4(s[1][0], s[1][1], s[1][2], s[1][3], idx);
-      MIX4(s[1][0], s[1][1], s[1][2], s[1][3]);
-      AES4(s[2][0], s[2][1], s[2][2], s[2][3], idx);
-      MIX4(s[2][0], s[2][1], s[2][2], s[2][3]);
-      AES4(s[3][0], s[3][1], s[3][2], s[3][3], idx);
-      MIX4(s[3][0], s[3][1], s[3][2], s[3][3]);
+      AES4(s[0].val[0], s[0].val[1], s[0].val[2], s[0].val[3], idx);
+      MIX4(s[0].val[0], s[0].val[1], s[0].val[2], s[0].val[3]);
+      AES4(s[1].val[0], s[1].val[1], s[1].val[2], s[1].val[3], idx);
+      MIX4(s[1].val[0], s[1].val[1], s[1].val[2], s[1].val[3]);
+      AES4(s[2].val[0], s[2].val[1], s[2].val[2], s[2].val[3], idx);
+      MIX4(s[2].val[0], s[2].val[1], s[2].val[2], s[2].val[3]);
+      AES4(s[3].val[0], s[3].val[1], s[3].val[2], s[3].val[3], idx);
+      MIX4(s[3].val[0], s[3].val[1], s[3].val[2], s[3].val[3]);
   }
 
-  s[0][0] = veorq_u8(s[0][0], vld1q_u8(in));
-  s[0][1] = veorq_u8(s[0][1], vld1q_u8(in + 16));
-  s[0][2] = veorq_u8(s[0][2], vld1q_u8(in + 32));
-  s[0][3] = veorq_u8(s[0][3], vld1q_u8(in + 48));
-  s[1][0] = veorq_u8(s[1][0], vld1q_u8(in + 64));
-  s[1][1] = veorq_u8(s[1][1], vld1q_u8(in + 80));
-  s[1][2] = veorq_u8(s[1][2], vld1q_u8(in + 96));
-  s[1][3] = veorq_u8(s[1][3], vld1q_u8(in + 112));
-  s[2][0] = veorq_u8(s[2][0], vld1q_u8(in + 128));
-  s[2][1] = veorq_u8(s[2][1], vld1q_u8(in + 144));
-  s[2][2] = veorq_u8(s[2][2], vld1q_u8(in + 160));
-  s[2][3] = veorq_u8(s[2][3], vld1q_u8(in + 176));
-  s[3][0] = veorq_u8(s[3][0], vld1q_u8(in + 192));
-  s[3][1] = veorq_u8(s[3][1], vld1q_u8(in + 208));
-  s[3][2] = veorq_u8(s[3][2], vld1q_u8(in + 224));
-  s[3][3] = veorq_u8(s[3][3], vld1q_u8(in + 240));
+  XOR_STRUCT(s[0], 0);
+  XOR_STRUCT(s[1], 1);
+  XOR_STRUCT(s[2], 2);
+  XOR_STRUCT(s[3], 3);
 
-  *(uint64_t*)(out) = vreinterpretq_u64_u8(s[0][0])[1];
-  *(uint64_t*)(out + 8) = vreinterpretq_u64_u8(s[0][1])[1];
-  *(uint64_t*)(out + 16) = vreinterpretq_u64_u8(s[0][2])[0];
-  *(uint64_t*)(out + 24) = vreinterpretq_u64_u8(s[0][3])[0];
-  *(uint64_t*)(out + 32) = vreinterpretq_u64_u8(s[1][0])[1];
-  *(uint64_t*)(out + 40) = vreinterpretq_u64_u8(s[1][1])[1];
-  *(uint64_t*)(out + 48) = vreinterpretq_u64_u8(s[1][2])[0];
-  *(uint64_t*)(out + 56) = vreinterpretq_u64_u8(s[1][3])[0];
-  *(uint64_t*)(out + 64) = vreinterpretq_u64_u8(s[2][0])[1];
-  *(uint64_t*)(out + 72) = vreinterpretq_u64_u8(s[2][1])[1];
-  *(uint64_t*)(out + 80) = vreinterpretq_u64_u8(s[2][2])[0];
-  *(uint64_t*)(out + 88) = vreinterpretq_u64_u8(s[2][3])[0];
-  *(uint64_t*)(out + 96) = vreinterpretq_u64_u8(s[3][0])[1];
-  *(uint64_t*)(out + 104) = vreinterpretq_u64_u8(s[3][1])[1];
-  *(uint64_t*)(out + 112) = vreinterpretq_u64_u8(s[3][2])[0];
-  *(uint64_t*)(out + 120) = vreinterpretq_u64_u8(s[3][3])[0];
+  // preparation for packet write to out
+  s_out.val[0] = vzip2q_u64((uint64x2_t)s[0].val[0], (uint64x2_t)s[0].val[1]);
+  s_out.val[1] = vzip1q_u64((uint64x2_t)s[0].val[2], (uint64x2_t)s[0].val[3]);
+  s_out.val[2] = vzip2q_u64((uint64x2_t)s[1].val[0], (uint64x2_t)s[1].val[1]);
+  s_out.val[3] = vzip1q_u64((uint64x2_t)s[1].val[2], (uint64x2_t)s[1].val[3]);
 
+  vst1q_u64_x4((uint64_t *)out, s_out);
+
+  s_out.val[0] = vzip2q_u64((uint64x2_t)s[2].val[0], (uint64x2_t)s[2].val[1]);
+  s_out.val[1] = vzip1q_u64((uint64x2_t)s[2].val[2], (uint64x2_t)s[2].val[3]);
+  s_out.val[2] = vzip2q_u64((uint64x2_t)s[3].val[0], (uint64x2_t)s[3].val[1]);
+  s_out.val[3] = vzip1q_u64((uint64x2_t)s[3].val[2], (uint64x2_t)s[3].val[3]);
+
+  vst1q_u64_x4((uint64_t *)(out + 64), s_out);
 }

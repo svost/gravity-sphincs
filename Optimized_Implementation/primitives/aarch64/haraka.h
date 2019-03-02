@@ -51,6 +51,12 @@
   s2 = vaesmcq_u8(vaeseq_u8(s2, rc8x16[8*rci + 2])) ^ rc8x16[8*rci + 6]; \
   s3 = vaesmcq_u8(vaeseq_u8(s3, rc8x16[8*rci + 3])) ^ rc8x16[8*rci + 7];
 
+#define XOR_STRUCT(s, idx) \
+  s.val[0] = veorq_u8(s.val[0], vld1q_u8(in + 64*idx)); \
+  s.val[1] = veorq_u8(s.val[1], vld1q_u8(in + 64*idx + 16)); \
+  s.val[2] = veorq_u8(s.val[2], vld1q_u8(in + 64*idx + 32)); \
+  s.val[3] = veorq_u8(s.val[3], vld1q_u8(in + 64*idx + 48));
+
 void haraka256_256(unsigned char *out, const unsigned char *in);
 void haraka256_256_4x(unsigned char *out, const unsigned char *in);
 void haraka256_256_chain(unsigned char *out, const unsigned char *in, int chainlen);
