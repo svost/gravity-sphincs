@@ -188,6 +188,7 @@ void haraka256_256_4x_chain(unsigned char *out, const unsigned char *in, int cha
 
 void haraka512_256(unsigned char *out, const unsigned char *in) {
   uint8x16x4_t s;
+  uint64x2x2_t s_out;
   uint32x4_t tmp;
 
   s = vld1q_u8_x4(in);
@@ -210,10 +211,11 @@ void haraka512_256(unsigned char *out, const unsigned char *in) {
   s.val[2] = veorq_u8(s.val[2], vld1q_u8(in + 32));
   s.val[3] = veorq_u8(s.val[3], vld1q_u8(in + 48));
 
-  *(uint64_t*)(out) = vreinterpretq_u64_u8(s.val[0])[1];
-  *(uint64_t*)(out + 8) = vreinterpretq_u64_u8(s.val[1])[1];
-  *(uint64_t*)(out + 16) = vreinterpretq_u64_u8(s.val[2])[0];
-  *(uint64_t*)(out + 24) = vreinterpretq_u64_u8(s.val[3])[0];
+  // preparation for packet write to out
+  s_out.val[0] = vzip2q_u64((uint64x2_t)s.val[0], (uint64x2_t)s.val[1]);
+  s_out.val[1] = vzip1q_u64((uint64x2_t)s.val[2], (uint64x2_t)s.val[3]);
+
+  vst1q_u64_x2((uint64_t *)out, s_out);
 }
 
 void haraka512_256_4x(unsigned char *out, const unsigned char *in) {
