@@ -6,8 +6,6 @@
  *  Microsoft Reference Source License (Ms-RSL)
  */
 
-// g++ aesneon.cxx -mcpu=cortex-a53+simd+crypto -std=c++11
-
 #include <stddef.h>
 #include <arm_neon.h>
 
@@ -15,38 +13,37 @@
 
 static const uint8x16_t zero8x16 = {0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
 
-static uint8x16_t assist256_1 (uint8x16_t a, int32x4_t b) {
+static uint8x16_t assist256_1 (uint8x16_t a, uint8x16_t b) {
     uint8x16_t c;
-    b = vdupq_laneq_s32(b, 3); // shuffle ( , 0xff or 3,3,3,3)
+    b = vreinterpretq_u8_s32(vdupq_laneq_s32(vreinterpretq_s32_u8(b), 3)); // shuffle ( , 0xff or 3,3,3,3)
     c = vextq_u8(vdupq_n_u8(0), a, 12); // slli (12 = 16 - 4)
     a = veorq_u8(a, c);
     c = vextq_u8(vdupq_n_u8(0), c, 12);
     a = veorq_u8(a, c);
     c = vextq_u8(vdupq_n_u8(0), c, 12);
     a = veorq_u8(a, c);
-    return vreinterpretq_u8_s32(veorq_s32((int32x4_t)a, b)); // return a = veorq_s32(a, b);
+    return veorq_u8(a, b); // return a = veorq_s32(a, b);
 }
 
-static uint8x16_t assist256_2 (int32x4_t a, int32x4_t c) {
-    int32x4_t b = {0,0,0,0}, d = {0,0,0,0};
+static uint8x16_t assist256_2 (uint8x16_t a, uint8x16_t c) {
+    uint8x16_t b, d;
 
-    d = (int32x4_t)vaeseq_u8((uint8x16_t)a, zero8x16);
-    uint8x16_t d_tmp = (uint8x16_t)d; //d
+    d = vaeseq_u8(a, zero8x16);
     uint8x16_t dest = {
-        d_tmp[0x4], d_tmp[0x1], d_tmp[0xE], d_tmp[0xB],
-        d_tmp[0x1], d_tmp[0xE], d_tmp[0xB], d_tmp[0x4],
-        d_tmp[0xC], d_tmp[0x9], d_tmp[0x6], d_tmp[0x3],
-        d_tmp[0x9], d_tmp[0x6], d_tmp[0x3], d_tmp[0xC]
+        d[0x4], d[0x1], d[0xE], d[0xB],
+        d[0x1], d[0xE], d[0xB], d[0x4],
+        d[0xC], d[0x9], d[0x6], d[0x3],
+        d[0x9], d[0x6], d[0x3], d[0xC]
     };
-    d = (int32x4_t)dest; //d = dest ^ (int32x4_t)((uint32x4_t){0, rcon, 0, rcon}); drop xor - rcon == 0
-    b = vdupq_laneq_s32(d, 2); // shuffle ( , 0xaa or 2,2,2,2)
-    d = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(c), 12));
-    c = veorq_s32(c, d);
-    d = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(d), 12));
-    c = veorq_s32(c, d);
-    d = vreinterpretq_s32_s8(vextq_s8(vdupq_n_s8(0), vreinterpretq_s8_s32(d), 12));
-    c = veorq_s32(c, d);
-    return vreinterpretq_u8_s32(veorq_s32(c, b)); // return c = veorq_s32(c, b);
+    d = dest; //d = dest ^ (int32x4_t)((uint32x4_t){0, rcon, 0, rcon}); drop xor - rcon == 0
+    b = vreinterpretq_u8_s32(vdupq_laneq_s32(vreinterpretq_s32_u8(d), 2)); // shuffle ( , 0xaa or 2,2,2,2)
+    d = vextq_u8(vdupq_n_u8(0), c, 12);
+    c = veorq_u8(c, d);
+    d = vextq_u8(vdupq_n_u8(0), d, 12);
+    c = veorq_u8(c, d);
+    d = vextq_u8(vdupq_n_u8(0), d, 12);
+    c = veorq_u8(c, d);
+    return veorq_u8(c, b); // return c = veorq_s32(c, b);
 }
 
 static uint8x16_t aeskeygenassist(uint8x16_t a, unsigned rcon) {
@@ -69,39 +66,37 @@ void expand256(uint8x16_t* keyExp, const uint8x16_t* userkey)
     temp3 = keyExp[1] = vld1q_u8((uint8_t *)(userkey+1));
 
     temp2 = aeskeygenassist(temp3, 0x01);
-    temp1 = keyExp[2] = assist256_1(temp1, (int32x4_t)temp2);
-    temp3 = keyExp[3] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
+    temp1 = keyExp[2] = assist256_1(temp1, temp2);
+    temp3 = keyExp[3] = assist256_2(temp1, temp3);
 
     temp2 = aeskeygenassist(temp3, 0x02);
-    temp1 = keyExp[4] = assist256_1(temp1, (int32x4_t)temp2);
-    temp3 = keyExp[5] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
+    temp1 = keyExp[4] = assist256_1(temp1, temp2);
+    temp3 = keyExp[5] = assist256_2(temp1, temp3);
 
     temp2 = aeskeygenassist(temp3, 0x04);
-    temp1 = keyExp[6] = assist256_1(temp1, (int32x4_t)temp2);
-    temp3 = keyExp[7] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
+    temp1 = keyExp[6] = assist256_1(temp1, temp2);
+    temp3 = keyExp[7] = assist256_2(temp1, temp3);
 
     temp2 = aeskeygenassist(temp3, 0x08);
-    temp1 = keyExp[8] = assist256_1(temp1, (int32x4_t)temp2);
-    temp3 = keyExp[9] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
+    temp1 = keyExp[8] = assist256_1(temp1, temp2);
+    temp3 = keyExp[9] = assist256_2(temp1, temp3);
 
     temp2 = aeskeygenassist(temp3, 0x10);
-    temp1 = keyExp[10] = assist256_1(temp1, (int32x4_t)temp2);
-    temp3 = keyExp[11] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
+    temp1 = keyExp[10] = assist256_1(temp1, temp2);
+    temp3 = keyExp[11] = assist256_2(temp1, temp3);
 
     temp2 = aeskeygenassist(temp3, 0x20);
-    temp1 = keyExp[12] = assist256_1(temp1, (int32x4_t)temp2);
-    temp3 = keyExp[13] = assist256_2((int32x4_t)temp1, (int32x4_t)temp3);
+    temp1 = keyExp[12] = assist256_1(temp1, temp2);
+    temp3 = keyExp[13] = assist256_2(temp1, temp3);
 
-    keyExp[14] = assist256_1(temp1, (int32x4_t)aeskeygenassist(temp3, 0x40));
+    keyExp[14] = assist256_1(temp1, aeskeygenassist(temp3, 0x40));
 }
 
 static int32x4_t increment_be_neon(int32x4_t x) {
-    uint8x16_t swaporderq = {11, 10, 9, 8, 15, 14, 13, 12, 3, 2, 1, 0, 7, 6, 5, 4};
-    int32x4_t one = {0, 0x01, 0, 0};
-    x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
+    int32x4_t one = {0, 0, 0, 0x01};
+    x = vreinterpretq_s32_u8(vrev32q_u8(vreinterpretq_u8_s32(x)));
     x = vaddq_s32(x, one);
-    x = vreinterpretq_s32_s8(vqtbl1q_s8(vreinterpretq_s8_s32(x), swaporderq));
-    return x;
+    return vreinterpretq_s32_u8(vrev32q_u8(vreinterpretq_u8_s32(x)));
 }
 
 void aesctr256_direct_x4 (uint8_t *out, const uint8x16_t *rkeys, const void *counter, size_t bytes) {
@@ -117,13 +112,13 @@ void aesctr256_direct_x4 (uint8_t *out, const uint8x16_t *rkeys, const void *cou
     bo = (int32x4_t *)out;
 
     for (i = 0; i < blocks_parallel; i += 4) {
-        s1 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
+        s1 = vaesmcq_u8(vaeseq_u8((uint8x16_t)ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
-        s2 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
+        s2 = vaesmcq_u8(vaeseq_u8((uint8x16_t)ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
-        s3 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
+        s3 = vaesmcq_u8(vaeseq_u8((uint8x16_t)ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
-        s4 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
+        s4 = vaesmcq_u8(vaeseq_u8((uint8x16_t)ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
 
         s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[1]));
@@ -192,7 +187,7 @@ void aesctr256_direct_x4 (uint8_t *out, const uint8x16_t *rkeys, const void *cou
     }
 
     for (i = 0; i < blocks_left; i++) {
-        s1 = vaesmcq_u8(vaeseq_u8(ctr, rkeys[0]));
+        s1 = vaesmcq_u8(vaeseq_u8((uint8x16_t)ctr, rkeys[0]));
         ctr = increment_be_neon(ctr);
         s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[1]));
         s1 = vaesmcq_u8(vaeseq_u8(s1, rkeys[2]));
