@@ -18,9 +18,9 @@ Gravity-SPHINCS is a stateless hash-based signature scheme designed by Jean-Phil
 
 ### Implementations
 
-* [Reference_Implementation/](Reference_Implementation): Our reference C89 implementation, without AES-NI nor SIMD instructions.
+* [Reference_Implementation/](Reference_Implementation): Our reference C99 implementation, without AES-NI nor SIMD instructions.
 
-* [Optimized_Implementation/](Optimized_Implementation): Our fast C89 implementation, with AES-NI and SIMD instructions.
+* [Optimized_Implementation/](Optimized_Implementation): Our fast C99 implementation, with AES-NI and SIMD instructions.
 
 * [Debug/](Debug): A version of the reference implementation that prints intermediate values. This directory includes intermediate values files for each of the three Gravity-SPHINCS versions.
 

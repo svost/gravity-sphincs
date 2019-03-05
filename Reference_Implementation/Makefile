@@ -45,19 +45,20 @@ help:
 			@echo "\tbench\t\t runs speed benchmarks"
 			@echo "\tclean\t\t cleans up"
 			@echo "\tformat\t\t formats the code using .clang-format rules"
+			@echo "\tharakasum\t\t file hashsum utility"
 
-bench:		$(SRC)
+bench:			$(SRC)
 			$(CC) $(CFLAGS) $^ $(LDFLAGS) -o bench
 			./bench
 
-harakasum:	harakasum.c primitives/haraka.c primitives/hash.c
+harakasum:		harakasum.c primitives/haraka.c primitives/hash.c
 			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o harakasum
 
 format:
 			clang-format -i *.c *.h
 
 analyze:
-			cppcheck . --std=c89
+			cppcheck . --std=c99
 			scan-build gcc -c $(CFLAGS_SANITIZED) *.c
 			cppclean .
 			rm -f *.o
