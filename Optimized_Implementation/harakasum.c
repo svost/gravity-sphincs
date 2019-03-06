@@ -1,91 +1,182 @@
-/*
----------------------------------------------------------------------------
-Copyright (c) 1998-2010, Brian Gladman, Worcester, UK. All rights reserved.
-
-The redistribution and use of this software (with or without changes)
-is allowed without the payment of fees or royalties provided that:
-
-  source code distributions include the above copyright notice, this
-  list of conditions and the following disclaimer;
-
-  binary distributions include the above copyright notice, this list
-  of conditions and the following disclaimer in their documentation.
-
-This software is provided 'as is' with no explicit or implied warranties
-in respect of its operation, including, but not limited to, correctness
-and fitness for purpose.
----------------------------------------------------------------------------
-Issue Date: 20/12/2007
-*/
-
+#include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <unistd.h>
 
 #include "hash.h"
 
-#define BUF_SIZE	16384
+#ifndef CHUNK_SIZE
+#define CHUNK_SIZE 16384
+#endif
 
-int main(int argc, char *argv[])
-{	FILE			*inf;
-	struct hash bufhash, sum, tmp[2];
-	unsigned char	buf[BUF_SIZE];
-	int				i, j = 0, len, is_console;
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
-	if(argc != 2)
-	{
-		printf("\nusage: harakasum filename\n");
-		exit(0);
-	}
+#define MODE_TEXT 0
+#define MODE_BINARY 1
+#define MODE_CHECK 2
 
-	if((is_console = ( (!strcmp(argv[1], "con") || !strcmp(argv[1], "CON")) )))
-	{
-		if(!(inf = fopen(argv[1], "r")))
-		{
-			printf("\n%s not found\n", argv[1]);
-			exit(0);
-		}
-	}
-	else if(!(inf = fopen(argv[1], "rb")))
-	{
-		printf("\n%s not found\n", argv[1]);
-		exit(0);
-	}
+const char *program = "harakasum";
+const char *algorithm = "haraka";
 
-	do
-	{
-		len = (int)fread(buf, 1, BUF_SIZE, inf);
-		i = len;
-		if(is_console)
-		{
-			i = 0;
-			while(i < len && buf[i] != '\x1a')
-				++i;
-		}
-		if(i)
-		{
-			hash_to_N(&bufhash, buf, i);
-			if(j)
-			{
-				tmp[0] = sum;
-				tmp[1] = bufhash;
-				hash_2N_to_N(&sum, &tmp[0]);
-			}
-			if (!j)
-			{
-				sum = bufhash;
-				j++;
-			}
-		}
-	}
-	while
-		(len && i == len);
+int process (struct hash *val, const char *name, int mode) {
+    struct hash bufhash, sum, tmp[2];
 
-	fclose(inf);
+    FILE *fp = NULL;
+    const char *modestr[] = { [MODE_TEXT] = "r", [MODE_BINARY] = "rb" };
+    uint8_t buf[CHUNK_SIZE];
+    size_t nread = 0;
+    int j = 0;
 
-	for(i = 0; i < HASH_SIZE; ++i)
-		printf("%02x", sum.h[i]);
-	printf("\n");
+    if (!name)
+        fp = stdin;
+    else if (!(fp = fopen (name, modestr[mode]))) {
+        fprintf (stderr, "%s: error opening file %s with mode %s: %s\n",
+                 program, name, modestr[mode], strerror (errno));
+        return -1;
+    }
 
-	return 0;
+    do {
+        nread = fread (buf, 1, CHUNK_SIZE, fp);
+        if (nread) {
+            hash_to_N (&bufhash, buf, nread);
+            if (j) {
+                tmp[0] = sum;
+                tmp[1] = bufhash;
+                hash_2N_to_N (&sum, &tmp[0]);
+            }
+            if (!j) {
+                sum = bufhash;
+                j++;
+            }
+        }
+    } while (nread > 0);
+
+    if (ferror (fp)) {
+        fprintf (stderr, "%s: error reading file %s: %s\n", program, name, strerror (errno));
+        fclose (fp);
+        return -1;
+    }
+
+    *val = sum;
+
+    fclose (fp);
+    return 0;
 }
+
+void print (struct hash *h, const char *name, int mode) {
+    for (int i = 0; i < HASH_SIZE; i++) printf ("%02x", h->h[i]);
+    printf (" %c%s\n", (mode == MODE_BINARY) ? '*' : ' ', name ? name : "-");
+}
+
+int check (const char *filename) {
+    int errors = 0;
+    FILE *fp;
+    char buf[(HASH_SIZE * 2) + 2 + PATH_MAX + 2];
+    char fnbuf[sizeof (buf)];
+
+    if (!filename)
+        fp = stdin;
+    else if (!(fp = fopen (filename, "r"))) {
+        fprintf (stderr, "%s: error opening file %s with mode %s: %s\n",
+                 program, filename, "r", strerror (errno));
+        return -1;
+    }
+
+    while (fgets (buf, sizeof (buf), fp)) {
+        struct hash val, computed;
+        size_t len = strlen (buf);
+        char dummy, type;
+        int mode, cmp;
+        if (buf[len - 1] != '\n') continue;
+        buf[len - 1] = '\0';
+        for (int i = 0; i < HASH_SIZE; i++)
+            if (!sscanf (buf + (2 * i), "%02hhx", val.h[i])) goto next;
+        if (sscanf (buf + (2 * HASH_SIZE), "%c%c%s", &dummy, &type, fnbuf) != 3)
+            continue;
+        fnbuf[sizeof (fnbuf) - 1] = '\0';
+        if (dummy != ' ') continue;
+        switch (type) {
+        case ' ':
+            mode = MODE_TEXT;
+            break;
+        case '*':
+            mode = MODE_BINARY;
+            break;
+        default:
+            continue;
+        }
+        if (process (&computed, fnbuf, mode) < 0) continue;
+        if ((cmp = memcmp (&computed, &val, sizeof (val)))) errors++;
+        printf ("%s: %s\n", fnbuf, cmp ? "FAILED" : "OK");
+    next:;
+    }
+
+    fclose (fp);
+    return errors;
+}
+
+int usage (int ret) {
+    printf ("Usage: %s [-tbc] [file1] [file2] ...\n"
+            "Print or check %s hashes.\n"
+            "\n"
+            "-t, --text: read file in text mode (default)\n"
+            "-b, --binary: read file in binary mode\n"
+            "-c, --check: read hashes from the file and check them\n",
+            program, algorithm);
+    return ret;
+}
+
+int main (int argc, char **argv) {
+    int c, mode = MODE_TEXT;
+    int retval = 0;
+
+    while ((c = getopt (argc, argv, "bcta:-:")) != -1) {
+        if (c == '-') {
+            if (!strcmp (optarg, "text"))
+                c = 't';
+            else if (!strcmp (optarg, "binary"))
+                c = 'b';
+            else if (!strcmp (optarg, "check"))
+                c = 'c';
+            else if (!strcmp (optarg, "help"))
+                return usage (0);
+            else
+                c = '?';
+        }
+        switch (c) {
+        case 'b':
+            mode = MODE_BINARY;
+            break;
+        case 't':
+            mode = MODE_TEXT;
+            break;
+        case 'c':
+            mode = MODE_CHECK;
+            break;
+        case '?':
+            return usage (2);
+        }
+    }
+
+    if (mode == MODE_CHECK) {
+        const char *p = argv[optind];
+        do {
+            if (check (p)) retval = 1;
+        } while (p && (p = argv[++optind]));
+    } else {
+        struct hash val;
+        const char *p = argv[optind];
+        do {
+            if (process (&val, p, mode))
+                retval = 1;
+            else
+                print (&val, p, mode);
+        } while (p && (p = argv[++optind]));
+    }
+
+    return retval;
+}
+
