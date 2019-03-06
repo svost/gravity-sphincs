@@ -1,7 +1,7 @@
-SRC=$(wildcard *.c) $(wildcard primitives/*.c)
+SRC=batch.c bench.c gravity.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/*.c)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 
-CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -mcpu=cortex-a53
+CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
 LDFLAGS=-lcrypto
 
 # Some of sample configurations from https://eprint.iacr.org/2017/933.pdf
@@ -51,7 +51,7 @@ bench:			$(SRC)
 			$(CC) $(CFLAGS) $^ $(LDFLAGS) -o bench
 			./bench
 
-harakasum:		harakasum.c primitives/haraka.c primitives/hash.c
+harakasum:		harakasum.c primitives/hash.c primitives/haraka.c primitives/kiss99.c
 			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o harakasum
 
 format:
