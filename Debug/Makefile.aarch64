@@ -1,4 +1,4 @@
-SRC=batch.c gen_ivs.c gravity.c hash.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/aarch64/*.c)
+SRC=batch.c gen_ivs.c gravity.c hash.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/aarch64/*.c) $(wildcard primitives/*.c)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 IVSFILE=IntermediateValues.txt
 BIN=gen_ivs

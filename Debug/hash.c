@@ -3,6 +3,8 @@
  */
 #include "hash.h"
 #include "primitives/haraka.h"
+#include "primitives/kiss99.h"
+#include "debug.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -43,15 +45,24 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
     //    and use them to build a merkle tree.
     //
     // NOTE: We need a full set of HASH_SIZE-byte chunks. If case
-    //   if we don't, then fill the remaining space with zeros.
+    //   if we don't, then fill the remaining space with random data.
     size_t full_chunks = srclen / HASH_SIZE;
     size_t tail_len = srclen % HASH_SIZE;
     size_t total_chunks = full_chunks + !!tail_len;
-    
+
     // Step 1: Populate zero level of nodes with chunks of input data
-    struct hash * nodes = malloc((total_chunks + 1) * sizeof(*nodes)); // +1 for duplication of odd element
-    memset((unsigned char*)&nodes[0], 0, (total_chunks + 1) * sizeof(*nodes));
-    memcpy((unsigned char*)&nodes[0], src, srclen); // copy src data
+    uint8_t *mem = malloc((total_chunks + 1) * HASH_SIZE); // +1 for duplication of odd element
+    struct hash * nodes = (struct hash*) mem;
+    memcpy(mem, src, srclen); // copy src data
+
+    if (tail_len) {
+        kiss99_ctx ctx;
+        kiss99_srand(&ctx, src, srclen);
+        kiss99_rand_buf(&ctx, mem + srclen, HASH_SIZE - tail_len);
+        //for (int z = 0; z < HASH_SIZE - tail_len; ++z) printf("%02x", (mem + srclen)[z]);
+        //printf("\n");
+        PBYTES("kiss99_padding", mem + srclen, HASH_SIZE - tail_len);
+    }
 
     // Step 2: If we have just one chunk, then create additional
     //   element to have even number of nodes
@@ -60,7 +71,7 @@ void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
         haraka256_256(nodes[1].h, nodes[0].h);
         ++total_chunks;
     }
-    
+
     // Step 3: Compress all chunks to a merkle root hash
     //
     // NOTE: Please take into account that one-element node trees MUST be hashed anyway
