@@ -93,7 +93,7 @@ int check (const char *filename) {
         if (buf[len - 1] != '\n') continue;
         buf[len - 1] = '\0';
         for (int i = 0; i < HASH_SIZE; i++)
-            if (!sscanf (buf + (2 * i), "%02hhx", val.h[i])) goto next;
+            if (!sscanf (buf + (2 * i), "%02hhx", &val.h[i])) goto next;
         if (sscanf (buf + (2 * HASH_SIZE), "%c%c%s", &dummy, &type, fnbuf) != 3)
             continue;
         fnbuf[sizeof (fnbuf) - 1] = '\0';
