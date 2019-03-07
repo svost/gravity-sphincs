@@ -50,27 +50,25 @@ void hash_to_N(struct hash *dst, const uint8_t *restrict src, uint64_t srclen)
     size_t total_chunks = full_chunks + !!tail_len;
 
     // Step 1: Populate zero level of nodes with chunks of input data
-    uint8_t *mem = malloc((total_chunks + 1) * HASH_SIZE); // +1 for duplication of odd element
-    struct hash * nodes = (struct hash*) mem;
+    uint8_t *restrict mem = malloc((total_chunks + 1) * HASH_SIZE); // +1 for duplication of odd element
     memcpy(mem, src, srclen); // copy src data
 
+    // Step 2: Add pseudo-random padding to the end of data stream, if needed.
     if (tail_len) {
         kiss99_ctx ctx;
-        kiss99_srand(&ctx, src, srclen);
+        kiss99_srand(&ctx, mem, srclen);
         kiss99_rand_buf(&ctx, mem + srclen, HASH_SIZE - tail_len);
-        //for (int z = 0; z < HASH_SIZE - tail_len; ++z) printf("%02x", (mem + srclen)[z]);
-        //printf("\n");
     }
 
-    // Step 2: If we have just one chunk, then create additional
+    // Step 3: If we have just one chunk, then create additional
     //   element to have even number of nodes
     if (total_chunks == 1)
     {
-        haraka256_256(nodes[1].h, nodes[0].h);
+        haraka256_256(mem + HASH_SIZE, mem);
         ++total_chunks;
     }
 
-    // Step 3: Compress all chunks to a merkle root hash
+    // Step 4: Compress all chunks to a merkle root hash
     //
     // NOTE: Please take into account that one-element node trees MUST be hashed anyway
     for (size_t left = total_chunks; left > 1; left /= 2)
@@ -78,19 +76,19 @@ void hash_to_N(struct hash *dst, const uint8_t *restrict src, uint64_t srclen)
         if (left % 2 == 1)
         {
             // Append an image of last element if we have odd number of nodes
-            haraka256_256(nodes[left].h, nodes[left - 1].h);
+            haraka256_256(mem + left * HASH_SIZE, mem + (left - 1) * HASH_SIZE);
             ++left;
         }
 
         for (size_t i = 0; i < left; i += 2)
         {
             // Turn a pair of nodes into upper node value
-            haraka512_256(nodes[i / 2].h, nodes[i].h);
+            haraka512_256(mem + i * HASH_SIZE / 2, mem + i * HASH_SIZE);
         }
     }
 
-    memcpy(dst->h, nodes[0].h, sizeof(*nodes));
-    free(nodes);
+    memcpy(&dst->h[0], mem, HASH_SIZE);
+    free(mem);
 }
 
 void hash_compress_pairs(struct hash *dst, const struct hash *src, int count)
