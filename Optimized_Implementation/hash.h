@@ -22,7 +22,7 @@ struct address {
 void hash_N_to_N (struct hash *dst, const struct hash *src);
 void hash_N_to_N_chain (struct hash *dst, const struct hash *src, int chainlen);
 void hash_2N_to_N (struct hash *dst, const struct hash *src);
-void hash_to_N (struct hash *dst, const uint8_t *src, uint64_t srclen);
+void hash_to_N (struct hash *dst, const uint8_t *restrict src, uint64_t srclen);
 
 /* Compress 2*count input hashes into count output hashes, pairwise */
 void hash_compress_pairs (struct hash *dst, const struct hash *src, int count);

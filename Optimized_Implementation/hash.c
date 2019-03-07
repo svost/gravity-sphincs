@@ -38,7 +38,7 @@ void hash_8N_to_4N(struct hash *dst, const struct hash *src)
     haraka512_256_4x(dst->h, src->h);
 }
 
-void hash_to_N(struct hash *dst, const uint8_t *src, uint64_t srclen)
+void hash_to_N(struct hash *dst, const uint8_t *restrict src, uint64_t srclen)
 {
     // Split original data to HASH_SIZE-byte chunks
     //    and use them to build a merkle tree.
