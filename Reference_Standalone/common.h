@@ -11,14 +11,6 @@
 #define WOTS_ell ((WOTS_ell1) + (WOTS_chksum))
 #define WOTS_w 16
 
-/* set by compile flags */
-#if 0
-#define PORS_k 28
-#define MERKLE_h 5
-#define GRAVITY_d 10
-#define GRAVITY_c 14
-#endif
-
 #define PORS_tau 16
 #define PORS_t (1 << (PORS_tau))
 

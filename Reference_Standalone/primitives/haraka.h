@@ -156,5 +156,4 @@ static const uint8_t sbox[256] =
 
 
 void haraka256_256(unsigned char *out, const unsigned char *in);
-void haraka256_256_chain(unsigned char *out, const unsigned char *in, int chainlen);
 void haraka512_256(unsigned char *out, const unsigned char *in);

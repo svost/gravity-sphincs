@@ -49,44 +49,6 @@ void haraka256_256 (uint8_t *out, const uint8_t *in) {
     }
 }
 
-void haraka256_256_chain (uint8_t *out, const uint8_t *in, int chainlen) {
-
-    uint8_t s0[16], s1[16];
-    uint8_t t0[16], t1[16];
-    uint32_t tmp[4];
-    int i, j;
-
-    memcpy (s0, in, 16);
-    memcpy (s1, in + 16, 16);
-    memcpy (t0, in, 16);
-    memcpy (t1, in + 16, 16);
-
-    for (j = 0; j < chainlen; ++j) {
-
-        AES2 (0);
-        MIX2;
-        AES2 (4);
-        MIX2;
-        AES2 (8);
-        MIX2;
-        AES2 (12);
-        MIX2;
-        AES2 (16);
-        MIX2;
-        AES2 (20);
-        MIX2;
-
-        for (i = 0; i < 16; ++i) {
-            s0[i] = t0[i] = t0[i] ^ s0[i];
-            s1[i] = t1[i] = t1[i] ^ s1[i];
-        }
-    }
-    for (i = 0; i < 16; ++i) {
-        out[i] = s0[i];
-        out[i + 16] = s1[i];
-    }
-}
-
 void haraka512_256 (uint8_t *out, const uint8_t *in) {
 
     uint8_t s0[16], s1[16], s2[16], s3[16];

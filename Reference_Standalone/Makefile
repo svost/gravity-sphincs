@@ -1,29 +1,7 @@
-SRC=batch.c bench.c gravity.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/*.c)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 
 CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
-LDFLAGS=-lcrypto
-
-# Some of sample configurations from https://eprint.iacr.org/2017/933.pdf
-
-# small
-VERSION_S= -DPORS_k=24 -DMERKLE_h=5  -DGRAVITY_d=1  -DGRAVITY_c=10
-
-# batched
-
-VERSION_B= -DPORS_k=32 -DMERKLE_h=8  -DGRAVITY_d=3  -DGRAVITY_c=16
-
-# fast
-VERSION_F= -DPORS_k=32 -DMERKLE_h=5  -DGRAVITY_d=7  -DGRAVITY_c=15
-
-# NIST-fast
-VERSION_NF= -DPORS_k=28 -DMERKLE_h=5  -DGRAVITY_d=10 -DGRAVITY_c=14
-
-# NIST
-VERSION_N= -DPORS_k=28 -DMERKLE_h=8  -DGRAVITY_d=6 -DGRAVITY_c=16
-
-# NIST-slow
-VERSION_NS= -DPORS_k=28 -DMERKLE_h=14  -DGRAVITY_d=4 -DGRAVITY_c=8
+LDFLAGS=
 
 VERSION=$(VERSION_NS)
 
@@ -31,25 +9,12 @@ CFLAGS_COMMON+=$(VERSION)
 CFLAGS=$(CFLAGS_COMMON) -O3 -fomit-frame-pointer
 CFLAGS_SANITIZED=$(CFLAGS_COMMON) -fsanitize=address,undefined -g
 
-KERNEL_NAME := $(shell uname -s)
-ifeq ($(KERNEL_NAME), Darwin)
-   CFLAGS += -I/usr/local/opt/openssl/include
-   LDFLAGS += -L/usr/local/opt/openssl/lib
-endif
-
 all: help
 
 help:
 			@echo "Please choose a target:"
 			@echo "\tanalyze\t\t runs static analyzers"
-			@echo "\tbench\t\t runs speed benchmarks"
-			@echo "\tclean\t\t cleans up"
-			@echo "\tformat\t\t formats the code using .clang-format rules"
 			@echo "\tharakasum\t\t file hashsum utility"
-
-bench:			$(SRC)
-			$(CC) $(CFLAGS) $^ $(LDFLAGS) -o bench
-			./bench
 
 harakasum:		harakasum.c primitives/hash.c primitives/haraka.c primitives/kiss99.c
 			$(CC) $(CFLAGS) $(LDFLAGS) $^ -o harakasum
@@ -67,7 +32,7 @@ cloc:
 			cloc $(wildcard *.c) $(wildcard *.h)
 
 clean:
-			rm -f bench harakasum *.dSYM *.o
+			rm -f harakasum *.dSYM *.o
 
-.PHONY: clean format analyze cloc bench
+.PHONY: clean format analyze cloc harakasum
 
