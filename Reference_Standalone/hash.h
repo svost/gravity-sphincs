@@ -15,7 +15,7 @@ struct hash {
 
 
 void hash_2N_to_N (struct hash *dst, const struct hash *src);
-void hash_to_N (struct hash *dst, const uint8_t *restrict src, uint64_t srclen);
+void hash_to_N (struct hash *dst, const uint8_t *restrict src, uint32_t srclen);
 
 /* int hashcmp(const struct hash *a, const struct hash *b); */
 #define hashcmp(a, b) memcmp ((a)->h, (b)->h, HASH_SIZE)

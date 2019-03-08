@@ -23,40 +23,41 @@ void hash_2N_to_N(struct hash *dst, const struct hash *src)
     haraka512_256(dst->h, src->h);
 }
 
-void hash_to_N(struct hash *dst, const uint8_t *restrict src, uint64_t srclen)
+void hash_to_N(struct hash *dst, const uint8_t *restrict src, uint32_t srclen)
 {
-    // Split original data to HASH_SIZE-byte chunks
+    uint32_t nPaddSz = 2 * HASH_SIZE;
+
+    // Split original data to 2 * HASH_SIZE-byte chunks
     //    and use them to build a merkle tree.
-    //
-    // NOTE: We need a full set of HASH_SIZE-byte chunks. If case
-    //   if we don't, then fill the remaining space with random data.
-    size_t full_chunks = srclen / HASH_SIZE;
-    size_t tail_len = srclen % HASH_SIZE;
+    size_t full_chunks = srclen / nPaddSz;
+    size_t tail_len = srclen % nPaddSz;
     size_t total_chunks = full_chunks + !!tail_len;
 
     // Step 1: Populate zero level of nodes with chunks of input data
-    uint8_t *restrict mem = malloc((total_chunks + 1) * HASH_SIZE); // +1 for duplication of odd element
+    uint8_t *restrict mem = malloc((total_chunks + 1) * nPaddSz); // +2 for worst case of padding
     memcpy(mem, src, srclen); // copy src data
 
-    // Step 2: Add pseudo-random padding to the end of data stream, if needed.
-    if (tail_len) {
-        kiss99_ctx ctx;
-        kiss99_srand(&ctx, mem, srclen);
-        kiss99_rand_buf(&ctx, mem + srclen, HASH_SIZE - tail_len);
+    // Step 2: To prevent collision attacks, we always need to append a data set to have 2n * HASH_SIZE bytes.
+    kiss99_ctx ctx;
+    uint32_t nsf = srclen;
+    uint8_t *restrict seed = malloc(tail_len + 4);
+    seed[0] = (uint8_t)  nsf;
+    seed[1] = (uint8_t) (nsf >>= 8);
+    seed[2] = (uint8_t) (nsf >>= 8);
+    seed[3] = (uint8_t) (nsf >>= 8);
+    memcpy(seed + 4, mem + srclen - tail_len, tail_len);
+    kiss99_srand(&ctx, seed, tail_len + 4);
+    free(seed);
+
+    uint32_t padd_size = nPaddSz - tail_len;
+    kiss99_rand_buf(&ctx, mem + srclen, padd_size);
+
+    if (padd_size == 64) {
+        total_chunks++;
     }
 
-    // Step 3: If we have just one chunk, then create additional
-    //   element to have even number of nodes
-    if (total_chunks == 1)
-    {
-        haraka256_256(mem + HASH_SIZE, mem);
-        ++total_chunks;
-    }
-
-    // Step 4: Compress all chunks to a merkle root hash
-    //
-    // NOTE: Please take into account that one-element node trees MUST be hashed anyway
-    for (size_t left = total_chunks; left > 1; left /= 2)
+    // Step 3: Compress all chunks to a merkle root hash
+    for (size_t left = 2 * total_chunks; left > 1; left /= 2)
     {
         if (left % 2 == 1)
         {
