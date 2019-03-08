@@ -93,8 +93,6 @@ int process_1mbRoots_256root (struct hash *val, const char *name, int mode) {
     size_t nread = 0;
 
     do {
-        // Check whether we have enough memory
-        //   and allocate space for additional 256 hashes if we are not.
         if (i == roots_num) {
             roots_num += 256;
             roots = (struct hash*) realloc(roots, roots_num * HASH_SIZE);
