@@ -208,6 +208,8 @@ int main (int argc, char **argv) {
     int c, mode = MODE_TEXT, hashing = HASHING_16kRootsSEQ;
     int retval = 0;
 
+    if (argc == 1) return usage (0);
+
     while ((c = getopt (argc, argv, "bctrs:-:")) != -1) {
         if (c == '-') {
             if (!strcmp (optarg, "seq"))
