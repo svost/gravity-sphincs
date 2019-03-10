@@ -2,7 +2,6 @@
  * Copyright (C) 2017 Nagravision S.A.
  */
 #include "gravity.h"
-#include "randombytes.h"
 
 #ifdef DEBUG
 #include "debug.h"
@@ -42,19 +41,6 @@ int crypto_derive_keypair (const unsigned char *seed, unsigned char *pk, unsigne
 #endif
 
     return 0;
-}
-
-int crypto_sign_keypair (unsigned char *pk, unsigned char *sk) {
-
-    unsigned char seed[HASH_SIZE];
-
-    randombytes (seed, HASH_SIZE);
-
-#ifdef DEBUG
-    PBYTES ("crypto_sign_keypair: seed", (uint8_t *)(seed), HASH_SIZE);
-#endif
-
-    return crypto_derive_keypair(seed, pk, sk);
 }
 
 int crypto_sign (unsigned char *sm,
