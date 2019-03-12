@@ -1,6 +1,6 @@
 SRC=batch.c bench.c gravity.c hash.c ltree.c merkle.c pors.c randombytes.c sign.c wots.c $(wildcard primitives/x86/*.c) $(wildcard primitives/*.c)
 
-CFLAGS_COMMON=-DX86 -DPRINTKEYS -std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
+CFLAGS_COMMON=-DX86 -std=c99 -pedantic -Wall -Wextra -Wno-long-long -march=native
 
 # Some of sample configurations from https://eprint.iacr.org/2017/933.pdf
 
