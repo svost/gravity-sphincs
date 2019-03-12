@@ -16,7 +16,7 @@ struct csrng_ctx {
     unsigned char   Key[32];
     unsigned char   V[16];
     unsigned int    reseed_counter;
-};
+} __attribute__ ((aligned (16)));
 
 
 void AES256_CTR_DRBG_Update(uint8_t *provided_data, uint8_t *Key, uint8_t *V);
