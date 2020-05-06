@@ -66,6 +66,25 @@ static const uint32_t rc[48 * 4] = {
 
 #define HARAKA_ROUNDS 6
 
+#define LOADD(src) _mm256_loadu_si256((__m256i *)(src))
+#define STORED(dest,src) _mm256_storeu_si256((__m256i *)(dest),src)
+
+#define AES2D(s, rci) \
+  s = _mm256_aesenc_epi128 (s, LOADD (&rc[4 * (rci + 0)]));                     \
+  s = _mm256_aesenc_epi128 (s, LOADD (&rc[4 * (rci + 2)]));
+
+// __m256i _mm256_permutevar8x32_epi32 (__m256i a, __m256i idx) AVX2
+// __m256i _mm256_permutexvar_epi32 (__m256i idx, __m256i a) AVX512
+
+#define MIX2D(s0, s1) \
+  tmp = _mm_unpacklo_epi32(s0, s1); \
+  s1 = _mm_unpackhi_epi32(s0, s1); \
+  s0 = tmp;
+
+#define AES_MIX2D(s, rci) \
+  AES2D(s, rci); \
+  MIX2D(s);
+
 #define LOAD(src) _mm_load_si128((__m128i *)(src))
 #define STORE(dest,src) _mm_storeu_si128((__m128i *)(dest),src)
 
