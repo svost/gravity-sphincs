@@ -7,7 +7,7 @@
 #include "hash.h"
 
 /* Naive WOTS without L-tree nor masks */
-struct wots_sk {
+struct __attribute__((aligned (32))) wots_sk {
     struct hash k[WOTS_ell];
 };
 
