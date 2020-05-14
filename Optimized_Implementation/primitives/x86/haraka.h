@@ -66,6 +66,13 @@ static const uint32_t rc[48 * 4] = {
 
 #define HARAKA_ROUNDS 6
 
+
+// vaes block
+
+// https://gcc.gnu.org/onlinedocs/gcc/Vector-Extensions.html _mm256_load_si256 crash programm
+// https://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html
+// https://stackoverflow.com/questions/14492436/g-optimization-beyond-o3-ofast
+
 #define LOADD(src) _mm256_loadu_si256((__m256i *)(src))
 #define STORED(dest,src) _mm256_storeu_si256((__m256i *)(dest),src)
 
@@ -73,8 +80,8 @@ static const uint32_t rc[48 * 4] = {
   s = _mm256_aesenc_epi128 (s, LOADD (&rc[4 * (rci + 0)]));                     \
   s = _mm256_aesenc_epi128 (s, LOADD (&rc[4 * (rci + 2)]));
 
-// __m256i _mm256_permutevar8x32_epi32 (__m256i a, __m256i idx) AVX2
-// __m256i _mm256_permutexvar_epi32 (__m256i idx, __m256i a) AVX512
+//                 sd = _mm256_set_m128i(s[1], s[0]);
+//  mix alt        sd = _mm256_permutevar8x32_epi32(sd, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
 
 #define MIX2D(s0, s1) \
   tmp = _mm_unpacklo_epi32(s0, s1); \
@@ -84,6 +91,10 @@ static const uint32_t rc[48 * 4] = {
 #define AES_MIX2D(s, rci) \
   AES2D(s, rci); \
   MIX2D(s);
+
+
+// vaes block end
+
 
 #define LOAD(src) _mm_load_si128((__m128i *)(src))
 #define STORE(dest,src) _mm_storeu_si128((__m128i *)(dest),src)
