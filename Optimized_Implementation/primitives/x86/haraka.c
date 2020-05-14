@@ -238,12 +238,19 @@ void haraka512_256(unsigned char *out, const unsigned char *in) {
   s[2] = _mm_xor_si128(s[2], LOAD(in + 32));
   s[3] = _mm_xor_si128(s[3], LOAD(in + 48));
 
-  _mm_storel_epi64 ((__m128i *)(out + 0),
-  _mm_shuffle_epi32 (s[0], _MM_SHUFFLE (3, 2, 3, 2)));
-_mm_storel_epi64 ((__m128i *)(out + 8),
-  _mm_shuffle_epi32 (s[1], _MM_SHUFFLE (3, 2, 3, 2)));
-_mm_storel_epi64 ((__m128i *)(out + 16), s[2]);
-_mm_storel_epi64 ((__m128i *)(out + 24), s[3]);
+/* slower
+  const __m128i mask = _mm_set_epi32(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  _mm_maskmoveu_si128(s[0], mask, (out - 8));
+  _mm_maskmoveu_si128(s[1], mask, (out + 0));
+  _mm_storel_epi64((__m128i*)(out + 16), s[2]);
+  _mm_storel_epi64((__m128i*)(out + 24), s[3]);
+*/
+
+  _mm_storel_epi64 ((__m128i *)(out + 0), _mm_shuffle_epi32 (s[0], _MM_SHUFFLE (3, 2, 3, 2)));
+  _mm_storel_epi64 ((__m128i *)(out + 8), _mm_shuffle_epi32 (s[1], _MM_SHUFFLE (3, 2, 3, 2)));
+  _mm_storel_epi64 ((__m128i *)(out + 16), s[2]);
+  _mm_storel_epi64 ((__m128i *)(out + 24), s[3]);
+
 }
 
 void haraka512_256_4x(unsigned char *out, const unsigned char *in) {
